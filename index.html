@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mon Menu du Jour</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<style>
+  :root{
+    --paper:#F7F3EA;
+    --ink:#2B2620;
+    --ink-soft:#5C5548;
+    --mustard:#C79A2E;
+    --sage:#5F7350;
+    --tomato:#B24A2E;
+    --line:#DDD5C2;
+    --white:#FFFDF8;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'IBM Plex Sans', sans-serif;
+    line-height:1.55;
+  }
+  h1,h2,h3{
+    font-family:'Source Serif 4', serif;
+    font-weight:600;
+    margin:0 0 .3em 0;
+    color:var(--ink);
+  }
+  .wrap{
+    max-width:720px;
+    margin:0 auto;
+    padding:2.5rem 1.5rem 5rem;
+  }
+  header.top{
+    border-bottom:2px solid var(--ink);
+    padding-bottom:1.2rem;
+    margin-bottom:2rem;
+  }
+  header.top h1{
+    font-size:2.1rem;
+    letter-spacing:-0.01em;
+  }
+  header.top p{
+    color:var(--ink-soft);
+    margin:.4rem 0 0;
+    max-width:46ch;
+  }
+  .card{
+    background:var(--white);
+    border:1px solid var(--line);
+    padding:1.6rem 1.7rem;
+    margin-bottom:1.5rem;
+  }
+  .card h2{
+    font-size:1.25rem;
+    border-bottom:1px solid var(--line);
+    padding-bottom:.6rem;
+    margin-bottom:1.1rem;
+  }
+  label{
+    display:block;
+    font-size:.85rem;
+    color:var(--ink-soft);
+    margin-bottom:.3rem;
+  }
+  .field{margin-bottom:1rem;}
+  .row{display:flex; gap:1rem;}
+  .row .field{flex:1;}
+  input[type=number], select{
+    width:100%;
+    padding:.55rem .6rem;
+    border:1px solid var(--line);
+    background:var(--paper);
+    font-family:inherit;
+    font-size:.95rem;
+    color:var(--ink);
+  }
+  input:focus, select:focus{outline:2px solid var(--sage); outline-offset:1px;}
+  fieldset{border:none; padding:0; margin:0 0 1rem;}
+  fieldset legend{font-size:.85rem; color:var(--ink-soft); padding:0; margin-bottom:.4rem;}
+  .radio-group{display:flex; gap:1.4rem;}
+  .radio-group label{display:flex; align-items:center; gap:.4rem; color:var(--ink); font-size:.95rem; margin:0;}
+  button{
+    background:var(--ink);
+    color:var(--white);
+    border:none;
+    padding:.75rem 1.4rem;
+    font-family:inherit;
+    font-size:.95rem;
+    font-weight:500;
+    cursor:pointer;
+  }
+  button:hover{background:var(--sage);}
+  button.ghost{
+    background:transparent;
+    color:var(--ink);
+    border:1px solid var(--ink);
+    padding:.5rem 1rem;
+    font-size:.85rem;
+  }
+  button.ghost:hover{background:var(--ink); color:var(--white);}
+  .hidden{display:none;}
+  .result-grid{display:flex; gap:1.5rem; flex-wrap:wrap; margin-bottom:.5rem;}
+  .stat{flex:1; min-width:140px;}
+  .stat .num{font-family:'Source Serif 4', serif; font-size:2rem; font-weight:700; color:var(--tomato);}
+  .stat .label{font-size:.8rem; color:var(--ink-soft);}
+  .meal{
+    border-top:1px solid var(--line);
+    padding:1rem 0;
+  }
+  .meal:first-of-type{border-top:none; padding-top:0;}
+  .meal-head{display:flex; justify-content:space-between; align-items:baseline; gap:1rem;}
+  .meal-head .meal-type{font-size:.75rem; text-transform:uppercase; letter-spacing:.06em; color:var(--sage); font-weight:600;}
+  .meal-head .meal-name{font-family:'Source Serif 4', serif; font-size:1.15rem; margin:.1rem 0;}
+  .meal-meta{font-size:.85rem; color:var(--ink-soft); white-space:nowrap;}
+  .meal-desc{font-size:.9rem; color:var(--ink-soft); margin-top:.2rem;}
+  .day-total{
+    display:flex; justify-content:space-between; align-items:center;
+    border-top:2px solid var(--ink); margin-top:.5rem; padding-top:.8rem;
+    font-family:'Source Serif 4', serif; font-size:1.05rem;
+  }
+  .actions{display:flex; gap:.7rem; margin-top:1.2rem;}
+  .note{font-size:.8rem; color:var(--ink-soft); margin-top:1.5rem; border-top:1px dashed var(--line); padding-top:1rem;}
+  .status{font-size:.8rem; color:var(--ink-soft); margin-top:.6rem;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <h1>Mon Menu du Jour</h1>
+    <p>Renseigne ton profil pour obtenir un objectif calorique et un menu du jour équilibré, simple et pas cher à préparer.</p>
+  </header>
+
+  <section class="card" id="profileCard">
+    <h2>Ton profil</h2>
+    <form id="profileForm">
+      <div class="row">
+        <div class="field">
+          <label for="poids">Poids (kg)</label>
+          <input type="number" id="poids" min="30" max="250" step="0.1" required>
+        </div>
+        <div class="field">
+          <label for="taille">Taille (cm)</label>
+          <input type="number" id="taille" min="120" max="230" required>
+        </div>
+      </div>
+      <div class="row">
+        <div class="field">
+          <label for="age">Âge</label>
+          <input type="number" id="age" min="14" max="100" required>
+        </div>
+        <div class="field">
+          <fieldset>
+            <legend>Sexe</legend>
+            <div class="radio-group">
+              <label><input type="radio" name="sexe" value="homme" checked> Homme</label>
+              <label><input type="radio" name="sexe" value="femme"> Femme</label>
+            </div>
+          </fieldset>
+        </div>
+      </div>
+      <div class="field">
+        <label for="activite">Niveau d'activité</label>
+        <select id="activite">
+          <option value="1.2">Sédentaire (peu ou pas de sport)</option>
+          <option value="1.375" selected>Légèrement actif (1-3 séances/semaine)</option>
+          <option value="1.55">Modérément actif (3-5 séances/semaine)</option>
+          <option value="1.725">Très actif (6-7 séances/semaine)</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="objectif">Rythme de perte de poids souhaité</label>
+        <select id="objectif">
+          <option value="0">Maintien du poids (0 kg/semaine)</option>
+          <option value="250" selected>Doux (~0,25 kg/semaine)</option>
+          <option value="500">Modéré (~0,5 kg/semaine)</option>
+          <option value="750">Soutenu (~0,75 kg/semaine)</option>
+        </select>
+      </div>
+      <button type="submit">Calculer mon objectif</button>
+    </form>
+  </section>
+
+  <section class="card hidden" id="resultCard">
+    <h2>Ton objectif quotidien</h2>
+    <div class="result-grid">
+      <div class="stat">
+        <div class="num" id="bmrVal">–</div>
+        <div class="label">Métabolisme de base (kcal)</div>
+      </div>
+      <div class="stat">
+        <div class="num" id="maintienVal">–</div>
+        <div class="label">Besoins à activité égale (kcal)</div>
+      </div>
+      <div class="stat">
+        <div class="num" id="cibleVal">–</div>
+        <div class="label">Objectif journalier (kcal)</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="card hidden" id="menuCard">
+    <h2>Menu du jour proposé</h2>
+    <div id="menuList"></div>
+    <div class="day-total">
+      <span>Total du jour</span>
+      <span id="dayTotal">–</span>
+    </div>
+    <div class="actions">
+      <button class="ghost" id="btnRegen">Proposer un autre menu</button>
+      <button id="btnSave">Enregistrer ce profil</button>
+    </div>
+    <div class="status" id="saveStatus"></div>
+  </section>
+
+  <p class="note">Ces valeurs sont des estimations générales (formule de Mifflin-St Jeor) données à titre indicatif — elles ne remplacent pas l'avis d'un médecin ou d'un·e diététicien·ne, en particulier pour tout objectif de perte de poids soutenu ou prolongé.</p>
+</div>
+
+<script>
+// ---------- Firebase config (à remplacer par ton propre projet) ----------
+const firebaseConfig = {
+  apiKey: "AIzaSyA3A1cTpCGpVcPiEOWC-4Vz4JYi3E6ZqYM",
+  authDomain: "nutrition-energie.firebaseapp.com",
+  projectId: "nutrition-energie",
+  storageBucket: "nutrition-energie.firebasestorage.app",
+  messagingSenderId: "980063664505",
+  appId: "1:980063664505:web:f69a164c38fbfa9b78d7a8"
+};
+let db = null;
+let currentUid = null;
+try {
+  firebase.initializeApp(firebaseConfig);
+  db = firebase.firestore();
+  firebase.auth().signInAnonymously().then(cred => {
+    currentUid = cred.user ? cred.user.uid : null;
+  }).catch(err => console.warn("Auth anonyme désactivée ou config Firebase incomplète:", err.message));
+} catch(e) {
+  console.warn("Firebase non initialisé (config à compléter):", e.message);
+}
+
+// ---------- Base de recettes simples et pas chères ----------
+// cost: estimation en € par portion, kcal: par portion, time: minutes de préparation
+const RECIPES = {
+  petitDej: [
+    { name: "Porridge flocons d'avoine + banane", kcal: 320, cost: 0.6, time: 5, desc: "Flocons d'avoine cuits au lait, banane écrasée, filet de miel." },
+    { name: "Œufs brouillés + pain complet", kcal: 380, cost: 1.1, time: 8, desc: "2 œufs brouillés, 2 tranches de pain complet, tomate." },
+    { name: "Yaourt nature + fruits + muesli", kcal: 300, cost: 0.9, time: 3, desc: "Yaourt nature, pomme en dés, cuillère de muesli maison." },
+    { name: "Tartines fromage blanc + confiture", kcal: 340, cost: 0.7, time: 3, desc: "Pain, fromage blanc 20%, confiture allégée." }
+  ],
+  dejeunerDiner: [
+    { name: "Riz + lentilles + légumes sautés", kcal: 480, cost: 1.3, time: 25, desc: "Riz complet, lentilles corail, poivrons et oignons sautés." },
+    { name: "Pâtes complètes + sauce tomate + thon", kcal: 520, cost: 1.5, time: 15, desc: "Pâtes complètes, sauce tomate maison, thon au naturel." },
+    { name: "Poulet grillé + pommes de terre vapeur + haricots verts", kcal: 500, cost: 2.2, time: 30, desc: "Blanc de poulet mariné, pommes de terre, haricots verts." },
+    { name: "Omelette aux légumes + salade verte", kcal: 400, cost: 1.2, time: 15, desc: "3 œufs, courgette et poivron, salade assaisonnée légère." },
+    { name: "Soupe de légumes + œuf dur + pain", kcal: 380, cost: 1.0, time: 20, desc: "Soupe maison de saison, œuf dur, tranche de pain." },
+    { name: "Steak haché 5% + riz + brocolis", kcal: 470, cost: 2.0, time: 20, desc: "Steak haché maigre, riz basmati, brocolis vapeur." },
+    { name: "Curry de pois chiches + riz", kcal: 510, cost: 1.1, time: 25, desc: "Pois chiches, lait de coco léger, épices, riz." },
+    { name: "Wrap poulet + crudités", kcal: 450, cost: 1.8, time: 12, desc: "Galette de blé, poulet, salade, carottes râpées, yaourt sauce." }
+  ],
+  collation: [
+    { name: "Pomme + poignée d'amandes", kcal: 180, cost: 0.5, time: 1, desc: "Une pomme et 10 amandes." },
+    { name: "Yaourt nature", kcal: 90, cost: 0.4, time: 1, desc: "Un yaourt nature sans sucre ajouté." },
+    { name: "Compote sans sucre ajouté", kcal: 80, cost: 0.4, time: 1, desc: "Compote de pommes nature." },
+    { name: "Carottes + houmous", kcal: 150, cost: 0.6, time: 3, desc: "Bâtonnets de carotte et houmous maison." }
+  ]
+};
+
+function pick(arr, excludeName){
+  const options = excludeName ? arr.filter(r => r.name !== excludeName) : arr;
+  return options[Math.floor(Math.random() * options.length)];
+}
+
+// Compose un menu du jour en s'approchant de la cible calorique
+function generateMenu(target){
+  const petitDej = pick(RECIPES.petitDej);
+  const dejeuner = pick(RECIPES.dejeunerDiner);
+  let diner = pick(RECIPES.dejeunerDiner, dejeuner.name);
+  let collation = pick(RECIPES.collation);
+
+  let total = petitDej.kcal + dejeuner.kcal + diner.kcal + collation.kcal;
+
+  // Si trop au-dessus de la cible, on retire la collation ; si trop en dessous, on en ajoute une seconde
+  const meals = [
+    { type: "Petit-déjeuner", recipe: petitDej },
+    { type: "Déjeuner", recipe: dejeuner },
+    { type: "Dîner", recipe: diner },
+    { type: "Collation", recipe: collation }
+  ];
+
+  if (total - target > 250) {
+    meals.pop(); // retire la collation
+    total -= collation.kcal;
+  } else if (target - total > 250) {
+    const extra = pick(RECIPES.collation, collation.name);
+    meals.push({ type: "Collation", recipe: extra });
+    total += extra.kcal;
+  }
+
+  return { meals, total };
+}
+
+function renderMenu(target){
+  const { meals, total } = generateMenu(target);
+  const list = document.getElementById('menuList');
+  list.innerHTML = '';
+  let totalCost = 0;
+  meals.forEach(m => {
+    totalCost += m.recipe.cost;
+    const div = document.createElement('div');
+    div.className = 'meal';
+    div.innerHTML = `
+      <div class="meal-head">
+        <div>
+          <div class="meal-type">${m.type}</div>
+          <div class="meal-name">${m.recipe.name}</div>
+        </div>
+        <div class="meal-meta">${m.recipe.kcal} kcal · ${m.recipe.cost.toFixed(1)} € · ${m.recipe.time} min</div>
+      </div>
+      <div class="meal-desc">${m.recipe.desc}</div>
+    `;
+    list.appendChild(div);
+  });
+  document.getElementById('dayTotal').textContent = `${total} kcal · env. ${totalCost.toFixed(1)} €`;
+  document.getElementById('menuCard').classList.remove('hidden');
+  window._currentTarget = target;
+}
+
+document.getElementById('profileForm').addEventListener('submit', function(e){
+  e.preventDefault();
+  const poids = parseFloat(document.getElementById('poids').value);
+  const taille = parseFloat(document.getElementById('taille').value);
+  const age = parseFloat(document.getElementById('age').value);
+  const sexe = document.querySelector('input[name=sexe]:checked').value;
+  const activite = parseFloat(document.getElementById('activite').value);
+  const deficit = parseFloat(document.getElementById('objectif').value);
+
+  // Formule de Mifflin-St Jeor
+  let bmr;
+  if (sexe === 'homme') {
+    bmr = 10 * poids + 6.25 * taille - 5 * age + 5;
+  } else {
+    bmr = 10 * poids + 6.25 * taille - 5 * age - 161;
+  }
+  const maintien = bmr * activite;
+  let cible = maintien - deficit;
+  // Garde-fou : ne jamais descendre sous le métabolisme de base
+  if (cible < bmr) cible = bmr;
+
+  document.getElementById('bmrVal').textContent = Math.round(bmr);
+  document.getElementById('maintienVal').textContent = Math.round(maintien);
+  document.getElementById('cibleVal').textContent = Math.round(cible);
+  document.getElementById('resultCard').classList.remove('hidden');
+
+  window._profile = { poids, taille, age, sexe, activite, deficit, bmr, maintien, cible };
+  renderMenu(Math.round(cible));
+});
+
+document.getElementById('btnRegen').addEventListener('click', function(){
+  if (window._currentTarget) renderMenu(window._currentTarget);
+});
+
+document.getElementById('btnSave').addEventListener('click', async function(){
+  const status = document.getElementById('saveStatus');
+  if (!db) {
+    status.textContent = "Firebase non configuré — profil non enregistré (config à compléter dans le code).";
+    return;
+  }
+  try {
+    await db.collection('profils').doc(currentUid || 'anonyme_' + Date.now()).set({
+      ...window._profile,
+      updatedAt: new Date().toISOString()
+    });
+    status.textContent = "Profil enregistré ✓";
+  } catch(err) {
+    status.textContent = "Erreur lors de l'enregistrement : " + err.message;
+  }
+});
+</script>
+</body>
+</html>
