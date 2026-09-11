@@ -1,343 +1,7 @@
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Mon Menu du Jour</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-<style>
-  :root{
-    --paper:#F7F3EA;
-    --ink:#2B2620;
-    --ink-soft:#5C5548;
-    --mustard:#C79A2E;
-    --sage:#5F7350;
-    --tomato:#B24A2E;
-    --line:#DDD5C2;
-    --white:#FFFDF8;
-  }
-  *{box-sizing:border-box;}
-  body{
-    margin:0;
-    background:var(--paper);
-    color:var(--ink);
-    font-family:'IBM Plex Sans', sans-serif;
-    line-height:1.55;
-  }
-  h1,h2,h3{
-    font-family:'Source Serif 4', serif;
-    font-weight:600;
-    margin:0 0 .3em 0;
-    color:var(--ink);
-  }
-  .wrap{
-    max-width:720px;
-    margin:0 auto;
-    padding:2.5rem 1.5rem 5rem;
-  }
-  header.top{
-    border-bottom:2px solid var(--ink);
-    padding-bottom:1.2rem;
-    margin-bottom:2rem;
-  }
-  header.top h1{
-    font-size:2.1rem;
-    letter-spacing:-0.01em;
-  }
-  header.top p{
-    color:var(--ink-soft);
-    margin:.4rem 0 0;
-    max-width:46ch;
-  }
-  .card{
-    background:var(--white);
-    border:1px solid var(--line);
-    padding:1.6rem 1.7rem;
-    margin-bottom:1.5rem;
-  }
-  .card h2{
-    font-size:1.25rem;
-    border-bottom:1px solid var(--line);
-    padding-bottom:.6rem;
-    margin-bottom:1.1rem;
-  }
-  label{
-    display:block;
-    font-size:.85rem;
-    color:var(--ink-soft);
-    margin-bottom:.3rem;
-  }
-  .field{margin-bottom:1rem;}
-  .row{display:flex; gap:1rem;}
-  .row .field{flex:1;}
-  input[type=number], select{
-    width:100%;
-    padding:.55rem .6rem;
-    border:1px solid var(--line);
-    background:var(--paper);
-    font-family:inherit;
-    font-size:.95rem;
-    color:var(--ink);
-  }
-  input:focus, select:focus{outline:2px solid var(--sage); outline-offset:1px;}
-  fieldset{border:none; padding:0; margin:0 0 1rem;}
-  fieldset legend{font-size:.85rem; color:var(--ink-soft); padding:0; margin-bottom:.4rem;}
-  .radio-group{display:flex; gap:1.4rem;}
-  .radio-group label{display:flex; align-items:center; gap:.4rem; color:var(--ink); font-size:.95rem; margin:0;}
-  button{
-    background:var(--ink);
-    color:var(--white);
-    border:none;
-    padding:.75rem 1.4rem;
-    font-family:inherit;
-    font-size:.95rem;
-    font-weight:500;
-    cursor:pointer;
-  }
-  button:hover{background:var(--sage);}
-  button.ghost{
-    background:transparent;
-    color:var(--ink);
-    border:1px solid var(--ink);
-    padding:.5rem 1rem;
-    font-size:.85rem;
-  }
-  button.ghost:hover{background:var(--ink); color:var(--white);}
-  .hidden{display:none;}
-  .result-grid{display:flex; gap:1.5rem; flex-wrap:wrap; margin-bottom:.5rem;}
-  .stat{flex:1; min-width:140px;}
-  .stat .num{font-family:'Source Serif 4', serif; font-size:2rem; font-weight:700; color:var(--tomato);}
-  .stat .label{font-size:.8rem; color:var(--ink-soft);}
-  .meal{
-    border-top:1px solid var(--line);
-    padding:1rem 0;
-  }
-  .meal:first-of-type{border-top:none; padding-top:0;}
-  .meal-head{display:flex; justify-content:space-between; align-items:baseline; gap:1rem;}
-  .meal-head .meal-type{font-size:.75rem; text-transform:uppercase; letter-spacing:.06em; color:var(--sage); font-weight:600;}
-  .meal-head .meal-name{font-family:'Source Serif 4', serif; font-size:1.15rem; margin:.1rem 0;}
-  .meal-meta{font-size:.85rem; color:var(--ink-soft); white-space:nowrap;}
-  .meal-desc{font-size:.9rem; color:var(--ink-soft); margin-top:.2rem;}
-  .day-total{
-    display:flex; justify-content:space-between; align-items:center;
-    border-top:2px solid var(--ink); margin-top:.5rem; padding-top:.8rem;
-    font-family:'Source Serif 4', serif; font-size:1.05rem;
-  }
-  .actions{display:flex; gap:.7rem; margin-top:1.2rem;}
-  .note{font-size:.8rem; color:var(--ink-soft); margin-top:1.5rem; border-top:1px dashed var(--line); padding-top:1rem;}
-  .status{font-size:.8rem; color:var(--ink-soft); margin-top:.6rem;}
-
-  .week-day{border-top:2px solid var(--ink);padding-top:.35rem;margin-top:1rem;}
-  .week-day:first-child{border-top:none;margin-top:0;}
-  #exclusions{width:100%;padding:.55rem .6rem;border:1px solid var(--line);background:var(--paper);font-family:inherit;font-size:.95rem;color:var(--ink);}
-  @media(max-width:600px){.row{flex-direction:column;gap:0}.actions{flex-wrap:wrap}.actions button{width:100%;}}
-
-  .recipe-box{background:var(--paper);border:1px solid var(--line);padding:1rem;margin:.7rem 0 1rem;}
-  .recipe-box h4{font-family:'Source Serif 4',serif;margin:.1rem 0 .5rem;font-size:1.05rem;}
-  .recipe-box ul{margin:.4rem 0 .7rem;padding-left:1.2rem;}
-  .recipe-box ol{margin:.4rem 0;padding-left:1.2rem;}
-  .budget-total{display:flex;justify-content:space-between;border-top:2px solid var(--ink);padding-top:.7rem;margin-top:.8rem;font-family:'Source Serif 4',serif;}
-  .shopping{columns:2;column-gap:2rem;}
-  .shopping div{break-inside:avoid;padding:.15rem 0;}
-</style>
-</head>
-<body>
-<div class="wrap">
-
-  <header class="top">
-    <h1>Mon Menu du Jour</h1>
-    <p>Renseigne ton profil pour obtenir un objectif calorique et un menu du jour équilibré, simple et pas cher à préparer.</p>
-  </header>
-
-  <section class="card" id="profileCard">
-    <h2>Ton profil</h2>
-    <form id="profileForm">
-      <div class="row">
-        <div class="field" style="flex:2;">
-          <label for="prenom">Prénom (pour retrouver ton profil et varier tes menus)</label>
-          <input type="text" id="prenom" maxlength="30" required placeholder="ex: Yves">
-        </div>
-        <div class="field" style="flex:1; display:flex; align-items:flex-end;">
-          <button type="button" class="ghost" id="btnLoad" style="width:100%;">Charger ce profil</button>
-        </div>
-      </div>
-      <div class="row">
-        <div class="field">
-          <label for="poids">Poids (kg)</label>
-          <input type="number" id="poids" min="30" max="250" step="0.1" required>
-        </div>
-        <div class="field">
-          <label for="taille">Taille (cm)</label>
-          <input type="number" id="taille" min="120" max="230" required>
-        </div>
-      </div>
-      <div class="row">
-        <div class="field">
-          <label for="age">Âge</label>
-          <input type="number" id="age" min="14" max="100" required>
-        </div>
-        <div class="field">
-          <fieldset>
-            <legend>Sexe</legend>
-            <div class="radio-group">
-              <label><input type="radio" name="sexe" value="homme" checked> Homme</label>
-              <label><input type="radio" name="sexe" value="femme"> Femme</label>
-            </div>
-          </fieldset>
-        </div>
-      </div>
-      <div class="field">
-        <label for="activite">Niveau d'activité</label>
-        <select id="activite">
-          <option value="1.2">Sédentaire (peu ou pas de sport)</option>
-          <option value="1.375" selected>Légèrement actif (1-3 séances/semaine)</option>
-          <option value="1.55">Modérément actif (3-5 séances/semaine)</option>
-          <option value="1.725">Très actif (6-7 séances/semaine)</option>
-        </select>
-      </div>
-      <div class="field">
-        <label for="objectif">Rythme de perte de poids souhaité</label>
-        <select id="objectif">
-          <option value="0">Maintien du poids (0 kg/semaine)</option>
-          <option value="250" selected>Doux (~0,25 kg/semaine)</option>
-          <option value="500">Modéré (~0,5 kg/semaine)</option>
-          <option value="750">Soutenu (~0,75 kg/semaine)</option>
-        </select>
-      </div>
-      <div class="field">
-        <label for="regime">Préférence alimentaire</label>
-        <select id="regime">
-          <option value="aucune" selected>Aucune restriction</option>
-          <option value="vegetarien">Végétarien</option>
-        </select>
-      </div>
-      <div class="row">
-        <div class="field">
-          <label for="nbRepas">Nombre de prises alimentaires</label>
-          <select id="nbRepas">
-            <option value="3">3 repas</option>
-            <option value="4" selected>3 repas + 1 collation</option>
-            <option value="5">3 repas + 2 collations</option>
-          </select>
-        </div>
-        <div class="field">
-          <label for="styleMenu">Style du menu</label>
-          <select id="styleMenu">
-            <option value="equilibre" selected>Équilibré</option>
-            <option value="economique">Économique</option>
-            <option value="rapide">Rapide</option>
-            <option value="gourmand">Gourmand</option>
-          </select>
-        </div>
-      </div>
-      <div class="field">
-        <label for="exclusions">Plats/aliments à éviter <span style="font-weight:400;">(séparés par des virgules)</span></label>
-        <input type="text" id="exclusions" maxlength="250" placeholder="ex : saumon, champignons, thon">
-      </div>
-      <button type="submit">Calculer mon objectif</button>
-    </form>
-  </section>
-
-  <section class="card hidden" id="resultCard">
-    <h2>Ton objectif quotidien</h2>
-    <div class="result-grid">
-      <div class="stat">
-        <div class="num" id="bmrVal">–</div>
-        <div class="label">Métabolisme de base (kcal)</div>
-      </div>
-      <div class="stat">
-        <div class="num" id="maintienVal">–</div>
-        <div class="label">Besoins à activité égale (kcal)</div>
-      </div>
-      <div class="stat">
-        <div class="num" id="cibleVal">–</div>
-        <div class="label">Objectif journalier (kcal)</div>
-      </div>
-    </div>
-  </section>
-
-  <section class="card hidden" id="menuCard">
-    <h2>Menu du jour proposé</h2>
-    <div id="menuList"></div>
-    <div class="day-total">
-      <span>Total du jour</span>
-      <span id="dayTotal">–</span>
-    </div>
-    <div class="actions">
-      <button class="ghost" id="btnRegen">Autre menu complet</button>
-      <button class="ghost" id="btnWeek">Créer 7 jours variés</button>
-      <button id="btnSave">Enregistrer ce profil</button>
-    </div>
-    <div class="status" id="saveStatus"></div>
-  </section>
-
-  <section class="card hidden" id="addRecipeCard">
-    <h2>Ajouter une recette perso</h2>
-    <p class="meal-desc" style="margin:0 0 1rem;">Manque de choix ? Ajoute tes propres plats : ils rejoignent la liste et pourront être proposés dans tes prochains menus (sauvegardés avec ton profil).</p>
-    <form id="addRecipeForm">
-      <div class="row">
-        <div class="field" style="flex:2;">
-          <label for="rNom">Nom du plat</label>
-          <input type="text" id="rNom" maxlength="80" required placeholder="ex: Tarte aux poireaux maison">
-        </div>
-        <div class="field">
-          <label for="rCategorie">Repas</label>
-          <select id="rCategorie">
-            <option value="petitDej">Petit-déjeuner</option>
-            <option value="dejeunerDiner" selected>Déjeuner / Dîner</option>
-            <option value="collation">Collation</option>
-          </select>
-        </div>
-      </div>
-      <div class="row">
-        <div class="field">
-          <label for="rKcal">Calories (kcal)</label>
-          <input type="number" id="rKcal" min="20" max="1500" required>
-        </div>
-        <div class="field">
-          <label for="rCost">Coût estimé (€)</label>
-          <input type="number" id="rCost" min="0" max="20" step="0.1" required>
-        </div>
-        <div class="field">
-          <label for="rTime">Temps (min)</label>
-          <input type="number" id="rTime" min="1" max="180" required>
-        </div>
-      </div>
-      <div class="field">
-        <label for="rDesc">Description rapide</label>
-        <input type="text" id="rDesc" maxlength="140" placeholder="ex: Pâte fine, poireaux fondus, un peu de crème.">
-      </div>
-      <fieldset>
-        <div class="radio-group">
-          <label><input type="checkbox" id="rVeg"> Compatible végétarien</label>
-        </div>
-      </fieldset>
-      <button type="submit">Ajouter cette recette</button>
-    </form>
-    <div class="status" id="addRecipeStatus"></div>
-  </section>
-
-
-<section class="card" id="weekBudgetCard">
-  <h2>Ma semaine à 2 — budget 80 €</h2>
-  <p class="meal-desc">Une semaine prévue pour 2 personnes, avec des recettes détaillées et une liste de courses. Le budget est une estimation et peut varier selon les magasins et les marques.</p>
-  <div class="row">
-    <div class="field"><label for="weekBudget">Budget maximum (€)</label><input type="number" id="weekBudget" min="30" max="200" step="1" value="80"></div>
-    <div class="field"><label for="weekPeople">Nombre de personnes</label><input type="number" id="weekPeople" min="1" max="8" step="1" value="2"></div>
-  </div>
-  <button type="button" id="btnBudgetWeek">Générer ma semaine</button>
-  <div id="budgetWeekResult" class="hidden" style="margin-top:1.2rem;"></div>
-</section>
-
-  <p class="note">Ces valeurs sont des estimations générales (formule de Mifflin-St Jeor) données à titre indicatif — elles ne remplacent pas l'avis d'un médecin ou d'un·e diététicien·ne, en particulier pour tout objectif de perte de poids soutenu ou prolongé.</p>
-</div>
-
 <script>
-// ---------- Firebase config (à remplacer par ton propre projet) ----------
+// ============================================================
+// FIREBASE
+// ============================================================
 const firebaseConfig = {
   apiKey: "AIzaSyA3A1cTpCGpVcPiEOWC-4Vz4JYi3E6ZqYM",
   authDomain: "nutrition-energie.firebaseapp.com",
@@ -346,291 +10,707 @@ const firebaseConfig = {
   messagingSenderId: "980063664505",
   appId: "1:980063664505:web:f69a164c38fbfa9b78d7a8"
 };
-let db = null;
-let currentUid = null;
+let db = null, currentUid = null;
 try {
   firebase.initializeApp(firebaseConfig);
   db = firebase.firestore();
-  firebase.auth().signInAnonymously().then(cred => {
-    currentUid = cred.user ? cred.user.uid : null;
-  }).catch(err => console.warn("Auth anonyme désactivée ou config Firebase incomplète:", err.message));
-} catch(e) {
-  console.warn("Firebase non initialisé (config à compléter):", e.message);
-}
+  firebase.auth().signInAnonymously().then(cred => { currentUid = cred.user ? cred.user.uid : null; })
+    .catch(err => console.warn("Auth anonyme désactivée:", err.message));
+} catch(e) { console.warn("Firebase non initialisé:", e.message); }
 
-// ---------- Base de recettes simples et pas chères ----------
-// cost: estimation en € par portion, kcal: par portion, time: minutes de préparation
-// veg:true = compatible régime végétarien (aucune viande ni poisson).
+// ============================================================
+// BASE DE RECETTES (avec ingrédients + étapes + macros)
+// ============================================================
+// cost: € par portion, kcal: par portion, time: min, veg: végétarien
+// p/c/f : grammes de protéines / glucides / lipides (estimation)
+// season: tableau de mois (1-12) où les ingrédients principaux sont de saison
+// ingredients: pour 1 portion — steps: préparation
 const RECIPES = {
   petitDej: [
-    {name:"Porridge avoine, banane et miel",kcal:330,cost:.65,time:5,desc:"Avoine, lait, banane et une touche de miel.",veg:true},
-    {name:"Porridge pomme-cannelle",kcal:315,cost:.60,time:7,desc:"Avoine, pomme, lait et cannelle.",veg:true},
-    {name:"Porridge chocolat-banane",kcal:345,cost:.70,time:6,desc:"Avoine, lait, cacao non sucré et banane.",veg:true},
-    {name:"Overnight oats fruits rouges",kcal:320,cost:.85,time:5,desc:"Avoine, yaourt, fruits rouges et graines.",veg:true},
-    {name:"Œufs brouillés et pain complet",kcal:380,cost:1.10,time:8,desc:"Œufs brouillés, pain complet et tomate.",veg:true},
-    {name:"Œufs au plat, tartines et fruit",kcal:370,cost:1.00,time:8,desc:"Deux œufs, pain complet et fruit de saison.",veg:true},
-    {name:"Omelette jambon-fromage",kcal:400,cost:1.30,time:10,desc:"Omelette aux dés de jambon et fromage.",veg:false},
-    {name:"Tartines fromage blanc et confiture",kcal:340,cost:.70,time:3,desc:"Pain complet, fromage blanc et confiture.",veg:true},
-    {name:"Tartines avocat et œuf",kcal:390,cost:1.45,time:10,desc:"Pain complet, avocat et œuf.",veg:true},
-    {name:"Tartines chèvre, miel et noix",kcal:350,cost:1.15,time:6,desc:"Pain complet, chèvre, miel et noix.",veg:true},
-    {name:"Yaourt grec, muesli et pomme",kcal:335,cost:1.00,time:3,desc:"Yaourt grec, muesli, pomme et cannelle.",veg:true},
-    {name:"Skyr, banane et amandes",kcal:300,cost:1.05,time:3,desc:"Skyr, banane et amandes.",veg:true},
-    {name:"Skyr, fruits rouges et granola",kcal:310,cost:1.15,time:4,desc:"Skyr, fruits rouges et granola.",veg:true},
-    {name:"Muesli maison, lait et poire",kcal:325,cost:.75,time:3,desc:"Flocons, graines, fruits secs, lait et poire.",veg:true},
-    {name:"Pain perdu et compote",kcal:365,cost:.70,time:10,desc:"Pain, œuf, lait et compote sans sucre.",veg:true},
-    {name:"Pancakes avoine et fruits",kcal:360,cost:.90,time:15,desc:"Pancakes à l'avoine et fruits de saison.",veg:true},
-    {name:"Crêpes légères, fromage blanc et fruits",kcal:375,cost:1.00,time:15,desc:"Crêpes maison, fromage blanc et fruits.",veg:true},
-    {name:"Banana bread maison et yaourt",kcal:390,cost:.85,time:5,desc:"Tranche de banana bread et yaourt nature.",veg:true},
-    {name:"Smoothie banane-fraise et tartine",kcal:350,cost:1.10,time:7,desc:"Smoothie fruité et tartine de pain complet.",veg:true},
-    {name:"Chocolat chaud et tartines beurre",kcal:365,cost:.65,time:6,desc:"Lait chocolaté au cacao et tartines.",veg:true},
-    {name:"Fromage blanc, miel, noix et kiwi",kcal:320,cost:1.00,time:4,desc:"Fromage blanc, miel, noix et kiwi.",veg:true},
-    {name:"Bowl yaourt, pêche et avoine",kcal:315,cost:.95,time:4,desc:"Yaourt, pêche, avoine et graines.",veg:true},
-    {name:"Toast ricotta, tomate et œuf",kcal:365,cost:1.25,time:8,desc:"Pain grillé, ricotta, tomate et œuf.",veg:true},
-    {name:"Tartine beurre de cacahuète et banane",kcal:405,cost:.80,time:4,desc:"Pain complet, beurre de cacahuète et banane.",veg:true},
-    {name:"Brioche, fromage blanc et fruit",kcal:385,cost:.95,time:3,desc:"Brioche, fromage blanc et fruit.",veg:true}
+    {name:"Porridge avoine, banane et miel",kcal:330,cost:.65,time:5,veg:true,p:12,c:55,f:8,desc:"Avoine, lait, banane et une touche de miel.",
+     ingredients:["50 g flocons d'avoine","200 ml lait","1 banane","1 c. à café miel","cannelle"],
+     steps:["Chauffer le lait avec les flocons 5 min.","Ajouter la banane en rondelles.","Miel et cannelle au moment de servir."]},
+    {name:"Porridge pomme-cannelle",kcal:315,cost:.60,time:7,veg:true,p:11,c:54,f:7,season:[9,10,11,12,1,2],
+     desc:"Avoine, pomme, lait et cannelle.",
+     ingredients:["50 g flocons d'avoine","200 ml lait","1 pomme","cannelle"],
+     steps:["Cuire l'avoine dans le lait 5 min.","Ajouter la pomme coupée en dés.","Saupoudrer de cannelle."]},
+    {name:"Porridge chocolat-banane",kcal:345,cost:.70,time:6,veg:true,p:13,c:56,f:9,
+     desc:"Avoine, lait, cacao non sucré et banane.",
+     ingredients:["50 g flocons d'avoine","200 ml lait","1 banane","1 c. à café cacao non sucré"],
+     steps:["Cuire l'avoine dans le lait.","Incorporer le cacao.","Ajouter la banane en rondelles."]},
+    {name:"Overnight oats fruits rouges",kcal:320,cost:.85,time:5,veg:true,p:14,c:50,f:8,season:[6,7,8],
+     desc:"Avoine, yaourt, fruits rouges et graines.",
+     ingredients:["40 g flocons d'avoine","100 g yaourt nature","100 g fruits rouges","1 c. à café graines de chia"],
+     steps:["Mélanger avoine, yaourt et graines.","Réserver au frais une nuit.","Ajouter les fruits au moment de servir."]},
+    {name:"Œufs brouillés et pain complet",kcal:380,cost:1.10,time:8,veg:true,p:22,c:35,f:16,
+     desc:"Œufs brouillés, pain complet et tomate.",
+     ingredients:["2 œufs","2 tranches pain complet","1 tomate","10 g beurre"],
+     steps:["Griller le pain.","Battre les œufs et cuire doucement au beurre.","Servir avec la tomate en quartiers."]},
+    {name:"Œufs au plat, tartines et fruit",kcal:370,cost:1.00,time:8,veg:true,p:20,c:36,f:15,
+     desc:"Deux œufs, pain complet et fruit de saison.",
+     ingredients:["2 œufs","2 tranches pain complet","1 fruit de saison","5 g huile"],
+     steps:["Cuire les œufs au plat.","Griller le pain.","Servir avec le fruit."]},
+    {name:"Omelette jambon-fromage",kcal:400,cost:1.30,time:10,veg:false,p:28,c:6,f:29,
+     desc:"Omelette aux dés de jambon et fromage.",
+     ingredients:["3 œufs","50 g jambon blanc","30 g fromage râpé","1 noix de beurre"],
+     steps:["Battre les œufs.","Ajouter jambon et fromage.","Cuire à feu doux."]},
+    {name:"Tartines fromage blanc et confiture",kcal:340,cost:.70,time:3,veg:true,p:14,c:52,f:7,
+     desc:"Pain complet, fromage blanc et confiture.",
+     ingredients:["2 tranches pain complet","150 g fromage blanc","1 c. à soupe confiture"],
+     steps:["Griller le pain.","Tartiner de fromage blanc.","Ajouter la confiture."]},
+    {name:"Tartines avocat et œuf",kcal:390,cost:1.45,time:10,veg:true,p:16,c:34,f:22,
+     desc:"Pain complet, avocat et œuf.",
+     ingredients:["2 tranches pain complet","1/2 avocat","2 œufs","citron, poivre"],
+     steps:["Écraser l'avocat avec citron.","Griller le pain.","Cuire les œufs mollets.","Garnir et poivrer."]},
+    {name:"Tartines chèvre, miel et noix",kcal:350,cost:1.15,time:6,veg:true,p:13,c:38,f:17,
+     desc:"Pain complet, chèvre, miel et noix.",
+     ingredients:["2 tranches pain complet","40 g fromage de chèvre","1 c. à café miel","15 g noix"],
+     steps:["Griller le pain.","Tartiner de chèvre.","Ajouter miel et noix concassées."]},
+    {name:"Yaourt grec, muesli et pomme",kcal:335,cost:1.00,time:3,veg:true,p:16,c:48,f:9,
+     desc:"Yaourt grec, muesli, pomme et cannelle.",
+     ingredients:["150 g yaourt grec","40 g muesli","1 pomme","cannelle"],
+     steps:["Verser le yaourt dans un bol.","Ajouter muesli et pomme en dés.","Saupoudrer de cannelle."]},
+    {name:"Skyr, banane et amandes",kcal:300,cost:1.05,time:3,veg:true,p:22,c:32,f:9,
+     desc:"Skyr, banane et amandes.",
+     ingredients:["200 g skyr","1 banane","15 g amandes"],
+     steps:["Répartir le skyr.","Ajouter banane et amandes."]},
+    {name:"Skyr, fruits rouges et granola",kcal:310,cost:1.15,time:4,veg:true,p:22,c:36,f:8,season:[6,7,8],
+     desc:"Skyr, fruits rouges et granola.",
+     ingredients:["200 g skyr","100 g fruits rouges","30 g granola"],
+     steps:["Verser le skyr.","Ajouter fruits et granola."]},
+    {name:"Muesli maison, lait et poire",kcal:325,cost:.75,time:3,veg:true,p:12,c:54,f:8,season:[9,10,11,12,1],
+     desc:"Flocons, graines, fruits secs, lait et poire.",
+     ingredients:["50 g muesli","200 ml lait","1 poire"],
+     steps:["Verser muesli et lait.","Ajouter la poire en dés."]},
+    {name:"Pain perdu et compote",kcal:365,cost:.70,time:10,veg:true,p:14,c:52,f:11,
+     desc:"Pain, œuf, lait et compote sans sucre.",
+     ingredients:["2 tranches pain","2 œufs","100 ml lait","150 g compote","cannelle"],
+     steps:["Battre œufs et lait.","Tremper le pain.","Dorer à la poêle.","Servir avec la compote."]},
+    {name:"Pancakes avoine et fruits",kcal:360,cost:.90,time:15,veg:true,p:15,c:52,f:10,
+     desc:"Pancakes à l'avoine et fruits de saison.",
+     ingredients:["40 g flocons d'avoine mixés","1 œuf","1/2 banane","50 ml lait","1/2 c. à café levure","1 fruit de saison"],
+     steps:["Mixer avoine, banane, œuf, lait, levure.","Cuire de petites louches à la poêle.","Servir avec le fruit."]},
+    {name:"Crêpes légères, fromage blanc et fruits",kcal:375,cost:1.00,time:15,veg:true,p:15,c:55,f:9,
+     desc:"Crêpes maison, fromage blanc et fruits.",
+     ingredients:["50 g farine","1 œuf","150 ml lait","100 g fromage blanc","1 fruit"],
+     steps:["Mélanger farine, œuf et lait.","Cuire les crêpes.","Garnir de fromage blanc et fruit."]},
+    {name:"Banana bread maison et yaourt",kcal:390,cost:.85,time:5,veg:true,p:12,c:58,f:12,
+     desc:"Tranche de banana bread et yaourt nature.",
+     ingredients:["1 tranche banana bread","1 yaourt nature","cannelle"],
+     steps:["Sortir la tranche de banana bread.","Servir avec le yaourt."]},
+    {name:"Smoothie banane-fraise et tartine",kcal:350,cost:1.10,time:7,veg:true,p:13,c:52,f:9,season:[5,6,7,8],
+     desc:"Smoothie fruité et tartine de pain complet.",
+     ingredients:["1 banane","100 g fraises","100 ml lait","1 tranche pain complet","10 g beurre de cacahuète"],
+     steps:["Mixer fruits et lait.","Griller la tartine.","Tartiner et servir."]},
+    {name:"Chocolat chaud et tartines beurre",kcal:365,cost:.65,time:6,veg:true,p:11,c:54,f:12,
+     desc:"Lait chocolaté au cacao et tartines.",
+     ingredients:["250 ml lait","1 c. à café cacao","2 tranches pain complet","10 g beurre"],
+     steps:["Chauffer le lait avec le cacao.","Griller et beurrer le pain."]},
+    {name:"Fromage blanc, miel, noix et kiwi",kcal:320,cost:1.00,time:4,veg:true,p:20,c:34,f:11,
+     desc:"Fromage blanc, miel, noix et kiwi.",
+     ingredients:["200 g fromage blanc","1 kiwi","15 g noix","1 c. à café miel"],
+     steps:["Verser le fromage blanc.","Ajouter kiwi, noix, miel."]},
+    {name:"Bowl yaourt, pêche et avoine",kcal:315,cost:.95,time:4,veg:true,p:16,c:46,f:7,season:[6,7,8,9],
+     desc:"Yaourt, pêche, avoine et graines.",
+     ingredients:["150 g yaourt","1 pêche","30 g flocons d'avoine","1 c. à café graines"],
+     steps:["Verser le yaourt.","Ajouter pêche, avoine, graines."]},
+    {name:"Toast ricotta, tomate et œuf",kcal:365,cost:1.25,time:8,veg:true,p:20,c:32,f:16,season:[6,7,8,9],
+     desc:"Pain grillé, ricotta, tomate et œuf.",
+     ingredients:["2 tranches pain complet","60 g ricotta","1 tomate","1 œuf"],
+     steps:["Griller le pain.","Tartiner de ricotta.","Ajouter tomate et œuf poché ou au plat."]},
+    {name:"Tartine beurre de cacahuète et banane",kcal:405,cost:.80,time:4,veg:true,p:14,c:52,f:17,
+     desc:"Pain complet, beurre de cacahuète et banane.",
+     ingredients:["2 tranches pain complet","1 c. à soupe beurre de cacahuète","1 banane"],
+     steps:["Griller le pain.","Tartiner.","Ajouter la banane en rondelles."]},
+    {name:"Brioche, fromage blanc et fruit",kcal:385,cost:.95,time:3,veg:true,p:15,c:56,f:11,
+     desc:"Brioche, fromage blanc et fruit.",
+     ingredients:["1 tranche brioche","150 g fromage blanc","1 fruit"],
+     steps:["Servir la brioche.","Accompagner de fromage blanc et fruit."]}
   ],
   dejeunerDiner: [
-    {name:"Poulet rôti, pommes de terre et haricots verts",kcal:520,cost:2.10,time:35,desc:"Poulet rôti, pommes de terre et haricots verts.",veg:false},
-    {name:"Poulet moutarde et riz",kcal:490,cost:1.90,time:20,desc:"Filet de poulet, sauce moutarde légère et riz.",veg:false},
-    {name:"Poulet basquaise et riz",kcal:510,cost:2.00,time:35,desc:"Poulet mijoté aux tomates et poivrons.",veg:false},
-    {name:"Poulet citron et semoule",kcal:500,cost:1.85,time:25,desc:"Poulet citronné, semoule et légumes.",veg:false},
-    {name:"Poulet curry léger et riz",kcal:525,cost:1.90,time:25,desc:"Poulet au curry doux, lait de coco léger et riz.",veg:false},
-    {name:"Poulet tikka et riz",kcal:530,cost:2.10,time:30,desc:"Poulet mariné aux épices et riz.",veg:false},
-    {name:"Poulet champignons et pommes de terre",kcal:505,cost:2.00,time:30,desc:"Poulet, champignons et pommes de terre.",veg:false},
-    {name:"Poulet paprika et boulgour",kcal:495,cost:1.90,time:25,desc:"Poulet au paprika, boulgour et courgettes.",veg:false},
-    {name:"Escalope de dinde, riz et petits pois",kcal:470,cost:1.85,time:18,desc:"Dinde poêlée, riz et petits pois.",veg:false},
-    {name:"Dinde à la crème légère et champignons",kcal:480,cost:1.95,time:20,desc:"Émincé de dinde, champignons et crème légère.",veg:false},
-    {name:"Boulettes de bœuf, sauce tomate et pâtes",kcal:545,cost:1.85,time:30,desc:"Boulettes de bœuf maigre, tomate et pâtes.",veg:false},
-    {name:"Steak haché, purée et brocolis",kcal:520,cost:2.05,time:25,desc:"Steak haché maigre, purée maison et brocolis.",veg:false},
-    {name:"Steak haché, riz et ratatouille",kcal:510,cost:2.00,time:25,desc:"Steak haché, riz et ratatouille.",veg:false},
-    {name:"Chili con carne et riz",kcal:535,cost:1.85,time:30,desc:"Bœuf haché, haricots rouges, tomate et riz.",veg:false},
-    {name:"Bœuf sauté aux légumes et nouilles",kcal:530,cost:2.20,time:20,desc:"Bœuf, légumes croquants et nouilles.",veg:false},
-    {name:"Bœuf bourguignon léger et pommes de terre",kcal:520,cost:2.30,time:45,desc:"Bœuf mijoté, carottes et pommes de terre.",veg:false},
-    {name:"Hachis parmentier léger",kcal:530,cost:1.80,time:35,desc:"Bœuf maigre, purée de pommes de terre et légumes.",veg:false},
-    {name:"Sauté de porc moutarde et riz",kcal:525,cost:1.90,time:30,desc:"Porc maigre à la moutarde et riz.",veg:false},
-    {name:"Filet mignon, pommes de terre et carottes",kcal:510,cost:2.40,time:35,desc:"Filet mignon rôti, pommes de terre et carottes.",veg:false},
-    {name:"Jambon, coquillettes et petits pois",kcal:500,cost:1.45,time:18,desc:"Coquillettes, jambon blanc, petits pois et fromage.",veg:false},
-    {name:"Endives au jambon et purée",kcal:485,cost:1.65,time:30,desc:"Endives braisées, jambon, béchamel légère et purée.",veg:false},
-    {name:"Pâtes bolognaise au bœuf maigre",kcal:545,cost:1.65,time:25,desc:"Spaghetti et sauce bolognaise maison.",veg:false},
-    {name:"Pâtes thon-tomate",kcal:510,cost:1.55,time:15,desc:"Pâtes complètes, thon et sauce tomate.",veg:false},
-    {name:"Pâtes poulet, courgette et parmesan",kcal:525,cost:1.90,time:20,desc:"Pâtes, poulet, courgette et parmesan.",veg:false},
-    {name:"Pâtes saumon et épinards",kcal:550,cost:2.40,time:20,desc:"Pâtes, saumon et épinards avec sauce légère.",veg:false},
-    {name:"Lasagnes légères à la bolognaise",kcal:560,cost:1.90,time:45,desc:"Lasagnes maison au bœuf maigre et tomate.",veg:false},
-    {name:"Pizza maison jambon-champignons",kcal:550,cost:1.70,time:30,desc:"Pâte fine, tomate, mozzarella, jambon et champignons.",veg:false},
-    {name:"Pizza maison tomate-mozzarella",kcal:530,cost:1.50,time:25,desc:"Pâte fine, tomate, mozzarella et origan.",veg:true},
-    {name:"Quiche poireaux et salade",kcal:475,cost:1.35,time:30,desc:"Quiche légère aux poireaux et salade verte.",veg:true},
-    {name:"Quiche lorraine légère et salade",kcal:500,cost:1.55,time:35,desc:"Quiche au jambon, œufs et fromage, avec salade.",veg:false},
-    {name:"Omelette champignons-fromage et salade",kcal:430,cost:1.30,time:15,desc:"Omelette aux champignons et fromage, salade.",veg:true},
-    {name:"Chakchouka aux œufs",kcal:400,cost:1.05,time:20,desc:"Œufs pochés dans tomate, poivron et épices.",veg:true},
-    {name:"Ratatouille, œuf au plat et pain complet",kcal:420,cost:1.15,time:25,desc:"Ratatouille maison, œuf et pain complet.",veg:true},
-    {name:"Curry de pois chiches et riz",kcal:515,cost:1.10,time:25,desc:"Pois chiches, légumes, curry et riz.",veg:true},
-    {name:"Dahl de lentilles corail et naan",kcal:490,cost:1.05,time:25,desc:"Lentilles corail mijotées aux épices et naan.",veg:true},
-    {name:"Lentilles, carottes et œuf mollet",kcal:460,cost:1.10,time:25,desc:"Lentilles mijotées, carottes et œuf.",veg:true},
-    {name:"Riz, lentilles et légumes rôtis",kcal:500,cost:1.25,time:30,desc:"Riz, lentilles et légumes de saison.",veg:true},
-    {name:"Chili sin carne et riz",kcal:500,cost:1.15,time:25,desc:"Haricots rouges, maïs, tomate, épices et riz.",veg:true},
-    {name:"Couscous végétarien",kcal:505,cost:1.25,time:30,desc:"Semoule, pois chiches et légumes.",veg:true},
-    {name:"Couscous poulet et légumes",kcal:545,cost:2.00,time:35,desc:"Poulet, semoule et légumes mijotés.",veg:false},
-    {name:"Tajine de poulet aux abricots et semoule",kcal:530,cost:2.05,time:40,desc:"Poulet, abricots secs, épices douces et semoule.",veg:false},
-    {name:"Tajine de légumes et pois chiches",kcal:480,cost:1.25,time:35,desc:"Légumes mijotés, pois chiches et semoule.",veg:true},
-    {name:"Risotto champignons-parmesan",kcal:515,cost:1.45,time:30,desc:"Riz crémeux, champignons et parmesan.",veg:true},
-    {name:"Risotto poulet-champignons",kcal:545,cost:2.00,time:30,desc:"Riz crémeux, poulet et champignons.",veg:false},
-    {name:"Gratin de pâtes épinards-fromage",kcal:540,cost:1.35,time:30,desc:"Pâtes, épinards, béchamel légère et fromage.",veg:true},
-    {name:"Gratin pommes de terre, courgettes et chèvre",kcal:500,cost:1.45,time:35,desc:"Pommes de terre, courgettes et chèvre.",veg:true},
-    {name:"Gratin dauphinois léger et salade",kcal:470,cost:1.05,time:40,desc:"Pommes de terre, lait et crème légère.",veg:true},
-    {name:"Poisson blanc en papillote et riz",kcal:445,cost:2.15,time:25,desc:"Poisson blanc, légumes, citron et riz.",veg:false},
-    {name:"Cabillaud, purée de patate douce et brocolis",kcal:470,cost:2.35,time:25,desc:"Cabillaud, patate douce et brocolis.",veg:false},
-    {name:"Cabillaud tomate-olives et semoule",kcal:480,cost:2.30,time:25,desc:"Cabillaud mijoté à la tomate et olives, semoule.",veg:false},
-    {name:"Saumon, quinoa et courgettes",kcal:520,cost:2.60,time:20,desc:"Saumon, quinoa et courgettes poêlées.",veg:false},
-    {name:"Saumon au four, pommes de terre et brocolis",kcal:535,cost:2.65,time:30,desc:"Saumon rôti, pommes de terre et brocolis.",veg:false},
-    {name:"Colin citronné, riz et épinards",kcal:450,cost:2.10,time:20,desc:"Colin, citron, riz et épinards.",veg:false},
-    {name:"Crevettes ail-tomate et spaghetti",kcal:500,cost:2.40,time:20,desc:"Crevettes, tomate, ail et spaghetti.",veg:false},
-    {name:"Poke bowl saumon, riz et avocat",kcal:535,cost:2.70,time:15,desc:"Saumon mariné, riz, avocat et crudités.",veg:false},
-    {name:"Salade César légère au poulet",kcal:455,cost:1.90,time:15,desc:"Salade, poulet grillé, croûtons et parmesan.",veg:false},
-    {name:"Salade niçoise légère",kcal:460,cost:1.90,time:20,desc:"Thon, œuf, tomates, haricots verts et pommes de terre.",veg:false},
-    {name:"Salade de pommes de terre au thon",kcal:475,cost:1.55,time:20,desc:"Pommes de terre, thon, œuf et crudités.",veg:false},
-    {name:"Wrap poulet et crudités",kcal:465,cost:1.80,time:12,desc:"Wrap, poulet, salade, carottes et sauce yaourt.",veg:false},
-    {name:"Wrap thon, œuf et crudités",kcal:450,cost:1.55,time:10,desc:"Wrap, thon, œuf et crudités.",veg:false},
-    {name:"Wrap falafels et crudités",kcal:480,cost:1.20,time:15,desc:"Falafels, pita ou wrap, crudités et sauce yaourt.",veg:true},
-    {name:"Burger maison au bœuf et salade",kcal:560,cost:1.80,time:20,desc:"Pain burger, steak maigre, tomate, salade et sauce légère.",veg:false},
-    {name:"Burger maison aux haricots noirs",kcal:510,cost:1.30,time:20,desc:"Galette de haricots noirs, pain et crudités.",veg:true},
-    {name:"Tofu sauté, riz et brocolis",kcal:475,cost:1.45,time:18,desc:"Tofu mariné, riz et brocolis.",veg:true},
-    {name:"Nouilles sautées tofu-légumes",kcal:490,cost:1.35,time:18,desc:"Nouilles, tofu, légumes et sauce soja.",veg:true},
-    {name:"Buddha bowl quinoa-pois chiches",kcal:510,cost:1.50,time:25,desc:"Quinoa, pois chiches, légumes rôtis et sauce tahini.",veg:true},
-    {name:"Frittata pommes de terre et courgettes",kcal:470,cost:1.25,time:25,desc:"Œufs, pommes de terre, courgettes et herbes.",veg:true},
-    {name:"Soupe de légumes, œuf et tartine",kcal:400,cost:1.05,time:20,desc:"Soupe maison, œuf dur et pain complet.",veg:true},
-    {name:"Soupe lentilles-carottes et tartine",kcal:430,cost:.95,time:25,desc:"Soupe épaisse de lentilles et carottes.",veg:true},
-    {name:"Tomates farcies au bœuf et riz",kcal:520,cost:1.90,time:40,desc:"Tomates farcies au bœuf maigre, riz et herbes.",veg:false},
-    {name:"Poivrons farcis au bœuf et riz",kcal:525,cost:1.95,time:40,desc:"Poivrons farcis au bœuf maigre et riz.",veg:false},
-    {name:"Aubergines gratinées tomate-mozzarella",kcal:455,cost:1.35,time:35,desc:"Aubergines, tomate, mozzarella et herbes.",veg:true},
-    {name:"Moussaka légère aux lentilles",kcal:520,cost:1.55,time:45,desc:"Aubergines, lentilles, tomate et béchamel légère.",veg:true},
-    {name:"Paella poulet et légumes",kcal:550,cost:2.05,time:40,desc:"Riz, poulet, petits pois et légumes.",veg:false},
-    {name:"Riz cantonais léger",kcal:510,cost:1.45,time:20,desc:"Riz, œufs, petits pois et jambon.",veg:false},
-    {name:"Nasi goreng léger au poulet",kcal:540,cost:1.80,time:25,desc:"Riz sauté, poulet, œuf et légumes.",veg:false},
-    {name:"Poêlée pommes de terre, œufs et légumes",kcal:470,cost:1.10,time:25,desc:"Pommes de terre rissolées, œufs et légumes.",veg:true},
-    {name:"Croque-monsieur léger et salade",kcal:500,cost:1.35,time:15,desc:"Pain complet, jambon, fromage et salade.",veg:false},
-    {name:"Galettes de sarrasin jambon-œuf-fromage",kcal:520,cost:1.60,time:15,desc:"Galette bretonne au jambon, œuf et fromage.",veg:false},
-    {name:"Galette de sarrasin chèvre-épinards",kcal:480,cost:1.40,time:15,desc:"Galette bretonne, chèvre et épinards.",veg:true}
+    {name:"Poulet rôti, pommes de terre et haricots verts",kcal:520,cost:2.10,time:35,veg:false,p:42,c:48,f:14,season:[6,7,8,9],
+     desc:"Poulet rôti, pommes de terre et haricots verts.",
+     ingredients:["150 g poulet","250 g pommes de terre","150 g haricots verts","1 c. à soupe huile d'olive","thym"],
+     steps:["Préchauffer le four à 200°C.","Rôtir le poulet 30 min avec huile et thym.","Cuire pommes de terre et haricots à l'eau.","Servir."]},
+    {name:"Poulet moutarde et riz",kcal:490,cost:1.90,time:20,veg:false,p:40,c:50,f:11,
+     desc:"Filet de poulet, sauce moutarde légère et riz.",
+     ingredients:["150 g poulet","70 g riz cru","1 c. à soupe moutarde","10 cl crème légère","1 oignon"],
+     steps:["Cuire le riz.","Faire revenir oignon et poulet.","Ajouter moutarde et crème, mijoter 5 min."]},
+    {name:"Poulet basquaise et riz",kcal:510,cost:2.00,time:35,veg:false,p:38,c:52,f:12,
+     desc:"Poulet mijoté aux tomates et poivrons.",
+     ingredients:["150 g poulet","70 g riz cru","200 g tomates concassées","1 poivron","1 oignon","paprika"],
+     steps:["Faire revenir poulet et oignon.","Ajouter poivron et tomates.","Mijoter 25 min.","Servir avec le riz."]},
+    {name:"Poulet citron et semoule",kcal:500,cost:1.85,time:25,veg:false,p:39,c:50,f:12,
+     desc:"Poulet citronné, semoule et légumes.",
+     ingredients:["150 g poulet","70 g semoule","1 citron","2 courgettes","1 c. à soupe huile"],
+     steps:["Mariner le poulet au citron.","Cuire à la poêle.","Préparer la semoule et les courgettes poêlées."]},
+    {name:"Poulet curry léger et riz",kcal:525,cost:1.90,time:25,veg:false,p:38,c:54,f:14,
+     desc:"Poulet au curry doux, lait de coco léger et riz.",
+     ingredients:["150 g poulet","70 g riz cru","1 oignon","1 carotte","100 ml lait de coco léger","curry"],
+     steps:["Faire revenir oignon, carotte et poulet.","Ajouter curry et lait de coco.","Mijoter 12 min.","Servir avec le riz."]},
+    {name:"Poulet tikka et riz",kcal:530,cost:2.10,time:30,veg:false,p:40,c:54,f:14,
+     desc:"Poulet mariné aux épices et riz.",
+     ingredients:["150 g poulet","70 g riz cru","100 g yaourt","épices tikka","1 oignon"],
+     steps:["Mariner le poulet au yaourt et épices.","Cuire à la poêle.","Servir avec le riz."]},
+    {name:"Poulet champignons et pommes de terre",kcal:505,cost:2.00,time:30,veg:false,p:38,c:48,f:14,
+     desc:"Poulet, champignons et pommes de terre.",
+     ingredients:["150 g poulet","250 g pommes de terre","150 g champignons","1 oignon","persil"],
+     steps:["Cuire les pommes de terre.","Faire revenir poulet, oignon et champignons.","Assembler et parsemer de persil."]},
+    {name:"Poulet paprika et boulgour",kcal:495,cost:1.90,time:25,veg:false,p:38,c:50,f:12,
+     desc:"Poulet au paprika, boulgour et courgettes.",
+     ingredients:["150 g poulet","70 g boulgour","1 courgette","paprika","1 c. à soupe huile"],
+     steps:["Cuire le boulgour.","Poêler poulet et courgette au paprika.","Servir."]},
+    {name:"Escalope de dinde, riz et petits pois",kcal:470,cost:1.85,time:18,veg:false,p:38,c:50,f:9,
+     desc:"Dinde poêlée, riz et petits pois.",
+     ingredients:["150 g escalope de dinde","70 g riz cru","100 g petits pois","1 c. à soupe huile"],
+     steps:["Cuire riz et petits pois.","Poêler la dinde.","Servir."]},
+    {name:"Dinde à la crème légère et champignons",kcal:480,cost:1.95,time:20,veg:false,p:40,c:30,f:18,
+     desc:"Émincé de dinde, champignons et crème légère.",
+     ingredients:["150 g dinde","200 g champignons","10 cl crème légère","1 oignon","1 c. à soupe huile"],
+     steps:["Faire revenir dinde et oignon.","Ajouter champignons.","Ajouter la crème, mijoter 5 min."]},
+    {name:"Boulettes de bœuf, sauce tomate et pâtes",kcal:545,cost:1.85,time:30,veg:false,p:36,c:60,f:16,
+     desc:"Boulettes de bœuf maigre, tomate et pâtes.",
+     ingredients:["150 g bœuf haché 5%","80 g pâtes crues","200 g tomates concassées","1 oignon","herbes"],
+     steps:["Former les boulettes.","Faire revenir avec l'oignon.","Ajouter tomate et herbes, mijoter 20 min.","Cuire les pâtes et servir."]},
+    {name:"Steak haché, purée et brocolis",kcal:520,cost:2.05,time:25,veg:false,p:38,c:48,f:16,
+     desc:"Steak haché maigre, purée maison et brocolis.",
+     ingredients:["150 g steak haché 5%","250 g pommes de terre","200 g brocolis","50 ml lait"],
+     steps:["Cuire pommes de terre et brocolis.","Écraser les pommes de terre avec le lait.","Cuire le steak.","Servir."]},
+    {name:"Steak haché, riz et ratatouille",kcal:510,cost:2.00,time:25,veg:false,p:36,c:54,f:14,season:[7,8,9],
+     desc:"Steak haché, riz et ratatouille.",
+     ingredients:["150 g steak haché","70 g riz cru","1 courgette","1 aubergine","1 tomate"],
+     steps:["Cuire le riz.","Préparer la ratatouille.","Cuire le steak.","Servir."]},
+    {name:"Chili con carne et riz",kcal:535,cost:1.85,time:30,veg:false,p:36,c:60,f:14,
+     desc:"Bœuf haché, haricots rouges, tomate et riz.",
+     ingredients:["125 g bœuf haché","100 g haricots rouges cuits","200 g tomates concassées","1 poivron","70 g riz cru","épices"],
+     steps:["Faire revenir bœuf, oignon, poivron.","Ajouter tomate, haricots, épices.","Mijoter 20 min.","Servir avec le riz."]},
+    {name:"Bœuf sauté aux légumes et nouilles",kcal:530,cost:2.20,time:20,veg:false,p:36,c:56,f:16,
+     desc:"Bœuf, légumes croquants et nouilles.",
+     ingredients:["150 g bœuf","80 g nouilles","1 poivron","1 carotte","sauce soja"],
+     steps:["Cuire les nouilles.","Sauter bœuf et légumes au wok.","Ajouter sauce soja et nouilles."]},
+    {name:"Bœuf bourguignon léger et pommes de terre",kcal:520,cost:2.30,time:45,veg:false,p:38,c:44,f:16,season:[10,11,12,1,2],
+     desc:"Bœuf mijoté, carottes et pommes de terre.",
+     ingredients:["150 g bœuf","250 g pommes de terre","2 carottes","1 oignon","20 cl vin rouge","thym"],
+     steps:["Faire revenir bœuf et oignon.","Ajouter vin, carottes, thym.","Mijoter 40 min.","Ajouter pommes de terre 20 min avant la fin."]},
+    {name:"Hachis parmentier léger",kcal:530,cost:1.80,time:35,veg:false,p:34,c:52,f:16,
+     desc:"Bœuf maigre, purée de pommes de terre et légumes.",
+     ingredients:["125 g bœuf haché","300 g pommes de terre","1 oignon","100 ml lait","30 g fromage râpé"],
+     steps:["Cuire la purée.","Faire revenir bœuf et oignon.","Monter en plat, couvrir de purée et fromage.","Gratiner 15 min à 200°C."]},
+    {name:"Sauté de porc moutarde et riz",kcal:525,cost:1.90,time:30,veg:false,p:38,c:54,f:14,
+     desc:"Porc maigre à la moutarde et riz.",
+     ingredients:["150 g porc maigre","70 g riz cru","1 c. à soupe moutarde","10 cl crème légère","1 oignon"],
+     steps:["Cuire le riz.","Faire revenir porc et oignon.","Ajouter moutarde et crème.","Servir."]},
+    {name:"Filet mignon, pommes de terre et carottes",kcal:510,cost:2.40,time:35,veg:false,p:40,c:46,f:13,
+     desc:"Filet mignon rôti, pommes de terre et carottes.",
+     ingredients:["150 g filet mignon","250 g pommes de terre","2 carottes","1 c. à soupe huile","thym"],
+     steps:["Préchauffer à 200°C.","Disposer tout dans un plat.","Rôtir 35 min."]},
+    {name:"Jambon, coquillettes et petits pois",kcal:500,cost:1.45,time:18,veg:false,p:30,c:60,f:12,
+     desc:"Coquillettes, jambon blanc, petits pois et fromage.",
+     ingredients:["80 g coquillettes","100 g jambon blanc","100 g petits pois","20 g fromage râpé"],
+     steps:["Cuire les pâtes et petits pois.","Ajouter jambon en dés.","Parsemer de fromage."]},
+    {name:"Endives au jambon et purée",kcal:485,cost:1.65,time:30,veg:false,p:28,c:48,f:16,season:[11,12,1,2,3],
+     desc:"Endives braisées, jambon, béchamel légère et purée.",
+     ingredients:["2 endives","2 tranches jambon","250 g pommes de terre","20 cl lait","20 g fromage"],
+     steps:["Braisier les endives 20 min.","Préparer une béchamel légère.","Enrouler dans le jambon.","Napper de béchamel et gratiner.","Servir avec la purée."]},
+    {name:"Pâtes bolognaise au bœuf maigre",kcal:545,cost:1.65,time:25,veg:false,p:34,c:64,f:14,
+     desc:"Spaghetti et sauce bolognaise maison.",
+     ingredients:["80 g spaghetti","125 g bœuf haché 5%","200 g tomates concassées","1 oignon","1 carotte","herbes"],
+     steps:["Faire revenir oignon, carotte, bœuf.","Ajouter tomate et herbes, mijoter 20 min.","Cuire les pâtes.","Mélanger."]},
+    {name:"Pâtes thon-tomate",kcal:510,cost:1.55,time:15,veg:false,p:32,c:62,f:12,
+     desc:"Pâtes complètes, thon et sauce tomate.",
+     ingredients:["80 g pâtes complètes","1 boîte thon au naturel","200 g coulis tomate","1 gousse ail","basilic"],
+     steps:["Cuire les pâtes.","Chauffer coulis, ail, thon.","Mélanger et parsemer de basilic."]},
+    {name:"Pâtes poulet, courgette et parmesan",kcal:525,cost:1.90,time:20,veg:false,p:36,c:60,f:13,season:[6,7,8,9],
+     desc:"Pâtes, poulet, courgette et parmesan.",
+     ingredients:["80 g pâtes","125 g poulet","1 courgette","20 g parmesan","1 c. à soupe huile"],
+     steps:["Cuire les pâtes.","Poêler poulet et courgette.","Mélanger et parsemer de parmesan."]},
+    {name:"Pâtes saumon et épinards",kcal:550,cost:2.40,time:20,veg:false,p:34,c:58,f:18,
+     desc:"Pâtes, saumon et épinards avec sauce légère.",
+     ingredients:["80 g pâtes","120 g saumon","150 g épinards","10 cl crème légère","citron"],
+     steps:["Cuire les pâtes.","Poêler le saumon.","Ajouter épinards et crème.","Mélanger."]},
+    {name:"Lasagnes légères à la bolognaise",kcal:560,cost:1.90,time:45,veg:false,p:34,c:62,f:18,
+     desc:"Lasagnes maison au bœuf maigre et tomate.",
+     ingredients:["6 feuilles lasagnes","125 g bœuf haché","300 g tomates concassées","150 ml lait","20 g farine","30 g fromage râpé"],
+     steps:["Préparer bolognaise et béchamel.","Monter en couches.","Cuire 35 min à 190°C."]},
+    {name:"Pizza maison jambon-champignons",kcal:550,cost:1.70,time:30,veg:false,p:26,c:68,f:18,
+     desc:"Pâte fine, tomate, mozzarella, jambon et champignons.",
+     ingredients:["1 pâte à pizza","150 g coulis tomate","100 g mozzarella","2 tranches jambon","100 g champignons"],
+     steps:["Préchauffer à 220°C.","Étaler pâte et coulis.","Ajouter garniture.","Cuire 12-15 min."]},
+    {name:"Pizza maison tomate-mozzarella",kcal:530,cost:1.50,time:25,veg:true,p:22,c:66,f:18,
+     desc:"Pâte fine, tomate, mozzarella et origan.",
+     ingredients:["1 pâte à pizza","150 g coulis tomate","125 g mozzarella","origan"],
+     steps:["Préchauffer à 220°C.","Garnir et cuire 12-15 min."]},
+    {name:"Quiche poireaux et salade",kcal:475,cost:1.35,time:30,veg:true,p:18,c:42,f:24,season:[9,10,11,12,1,2,3],
+     desc:"Quiche légère aux poireaux et salade verte.",
+     ingredients:["1/2 pâte brisée","2 poireaux","2 œufs","10 cl lait","30 g fromage râpé","salade"],
+     steps:["Préchauffer à 180°C.","Faire fondre les poireaux.","Mélanger œufs, lait, fromage.","Garnir et cuire 35 min."]},
+    {name:"Quiche lorraine légère et salade",kcal:500,cost:1.55,time:35,veg:false,p:22,c:42,f:26,
+     desc:"Quiche au jambon, œufs et fromage, avec salade.",
+     ingredients:["1/2 pâte brisée","2 tranches jambon","3 œufs","10 cl lait","40 g fromage râpé","salade"],
+     steps:["Préchauffer à 180°C.","Mélanger œufs, lait, jambon, fromage.","Garnir et cuire 35 min."]},
+    {name:"Omelette champignons-fromage et salade",kcal:430,cost:1.30,time:15,veg:true,p:28,c:8,f:32,
+     desc:"Omelette aux champignons et fromage, salade.",
+     ingredients:["3 œufs","150 g champignons","30 g emmental","salade","1 c. à soupe huile"],
+     steps:["Poêler les champignons.","Battre les œufs et ajouter fromage.","Cuire l'omelette.","Servir avec la salade."]},
+    {name:"Chakchouka aux œufs",kcal:400,cost:1.05,time:20,veg:true,p:20,c:28,f:22,season:[7,8,9],
+     desc:"Œufs pochés dans tomate, poivron et épices.",
+     ingredients:["3 œufs","300 g tomates concassées","1 poivron","1 oignon","cumin, paprika","1 c. à soupe huile"],
+     steps:["Faire revenir oignon et poivron.","Ajouter tomate et épices.","Casser les œufs dessus et couvrir 5 min."]},
+    {name:"Ratatouille, œuf au plat et pain complet",kcal:420,cost:1.15,time:25,veg:true,p:18,c:38,f:20,season:[7,8,9],
+     desc:"Ratatouille maison, œuf et pain complet.",
+     ingredients:["1/2 aubergine","1 courgette","1 tomate","1/2 poivron","2 œufs","2 tranches pain"],
+     steps:["Faire mijoter les légumes 25 min.","Cuire les œufs au plat.","Servir avec le pain."]},
+    {name:"Curry de pois chiches et riz",kcal:515,cost:1.10,time:25,veg:true,p:18,c:78,f:12,
+     desc:"Pois chiches, légumes, curry et riz.",
+     ingredients:["150 g pois chiches cuits","70 g riz cru","200 g tomates concassées","100 ml lait de coco léger","curry","1 oignon"],
+     steps:["Faire revenir oignon et curry.","Ajouter tomate, pois chiches, lait de coco.","Mijoter 15 min.","Servir avec le riz."]},
+    {name:"Dahl de lentilles corail et naan",kcal:490,cost:1.05,time:25,veg:true,p:20,c:68,f:10,
+     desc:"Lentilles corail mijotées aux épices et naan.",
+     ingredients:["90 g lentilles corail","1 oignon","2 carottes","200 g tomates concassées","100 ml lait de coco léger","curry, cumin","1 naan"],
+     steps:["Faire revenir oignon et carottes.","Ajouter lentilles, tomate, épices, 200 ml eau.","Cuire 20 min.","Ajouter lait de coco.","Servir avec naan."]},
+    {name:"Lentilles, carottes et œuf mollet",kcal:460,cost:1.10,time:25,veg:true,p:24,c:58,f:10,
+     desc:"Lentilles mijotées, carottes et œuf.",
+     ingredients:["90 g lentilles vertes","2 carottes","1 oignon","1 cube bouillon","2 œufs"],
+     steps:["Faire revenir oignon et carottes.","Ajouter lentilles, bouillon, eau.","Cuire 25 min.","Servir avec œuf mollet."]},
+    {name:"Riz, lentilles et légumes rôtis",kcal:500,cost:1.25,time:30,veg:true,p:20,c:74,f:10,season:[9,10,11,12,1,2],
+     desc:"Riz, lentilles et légumes de saison.",
+     ingredients:["70 g riz cru","90 g lentilles cuites","1 courgette","1 carotte","1 oignon","1 c. à soupe huile"],
+     steps:["Rôtir les légumes au four 25 min à 200°C.","Cuire le riz.","Mélanger riz, lentilles, légumes."]},
+    {name:"Chili sin carne et riz",kcal:500,cost:1.15,time:25,veg:true,p:18,c:76,f:10,
+     desc:"Haricots rouges, maïs, tomate, épices et riz.",
+     ingredients:["150 g haricots rouges cuits","70 g riz cru","200 g tomates concassées","100 g maïs","1 poivron","épices"],
+     steps:["Faire revenir poivron et épices.","Ajouter tomate, haricots, maïs.","Mijoter 15 min.","Servir avec riz."]},
+    {name:"Couscous végétarien",kcal:505,cost:1.25,time:30,veg:true,p:18,c:80,f:9,
+     desc:"Semoule, pois chiches et légumes.",
+     ingredients:["70 g semoule","150 g pois chiches cuits","2 carottes","1 courgette","1 navet","épices couscous"],
+     steps:["Faire mijoter légumes et pois chiches 25 min.","Préparer la semoule.","Servir ensemble."]},
+    {name:"Couscous poulet et légumes",kcal:545,cost:2.00,time:35,veg:false,p:38,c:62,f:12,
+     desc:"Poulet, semoule et légumes mijotés.",
+     ingredients:["150 g poulet","80 g semoule","2 carottes","1 courgette","1 navet","100 g pois chiches","épices"],
+     steps:["Faire revenir poulet et épices.","Ajouter légumes, pois chiches et eau.","Cuire 25 min.","Servir avec semoule."]},
+    {name:"Tajine de poulet aux abricots et semoule",kcal:530,cost:2.05,time:40,veg:false,p:38,c:60,f:12,
+     desc:"Poulet, abricots secs, épices douces et semoule.",
+     ingredients:["150 g poulet","80 g semoule","50 g abricots secs","1 oignon","épices ras-el-hanout"],
+     steps:["Faire revenir poulet et oignon.","Ajouter abricots, épices, eau.","Mijoter 35 min.","Servir avec semoule."]},
+    {name:"Tajine de légumes et pois chiches",kcal:480,cost:1.25,time:35,veg:true,p:18,c:74,f:10,
+     desc:"Légumes mijotés, pois chiches et semoule.",
+     ingredients:["70 g semoule","150 g pois chiches","2 carottes","1 courgette","1 oignon","épices"],
+     steps:["Mijoter légumes, pois chiches, épices 30 min.","Préparer la semoule.","Servir."]},
+    {name:"Risotto champignons-parmesan",kcal:515,cost:1.45,time:30,veg:true,p:20,c:70,f:14,
+     desc:"Riz crémeux, champignons et parmesan.",
+     ingredients:["80 g riz arborio","200 g champignons","1 oignon","50 cl bouillon","30 g parmesan"],
+     steps:["Faire revenir oignon et champignons.","Ajouter riz et bouillon progressivement.","Remuer 20 min.","Ajouter parmesan."]},
+    {name:"Risotto poulet-champignons",kcal:545,cost:2.00,time:30,veg:false,p:36,c:68,f:14,
+     desc:"Riz crémeux, poulet et champignons.",
+     ingredients:["80 g riz arborio","125 g poulet","150 g champignons","1 oignon","50 cl bouillon","20 g parmesan"],
+     steps:["Faire revenir poulet, oignon, champignons.","Ajouter riz et bouillon.","Remuer 20 min.","Ajouter parmesan."]},
+    {name:"Gratin de pâtes épinards-fromage",kcal:540,cost:1.35,time:30,veg:true,p:22,c:62,f:20,
+     desc:"Pâtes, épinards, béchamel légère et fromage.",
+     ingredients:["80 g pâtes","200 g épinards","20 cl lait","20 g farine","40 g fromage râpé"],
+     steps:["Cuire les pâtes.","Préparer béchamel.","Mélanger pâtes, épinards, béchamel.","Gratiner 20 min à 200°C."]},
+    {name:"Gratin pommes de terre, courgettes et chèvre",kcal:500,cost:1.45,time:35,veg:true,p:18,c:52,f:22,season:[6,7,8,9],
+     desc:"Pommes de terre, courgettes et chèvre.",
+     ingredients:["250 g pommes de terre","1 courgette","60 g chèvre","10 cl crème légère"],
+     steps:["Trancher pommes de terre et courgette.","Monter en couches avec chèvre.","Ajouter crème.","Cuire 30 min à 190°C."]},
+    {name:"Gratin dauphinois léger et salade",kcal:470,cost:1.05,time:40,veg:true,p:14,c:54,f:20,
+     desc:"Pommes de terre, lait et crème légère.",
+     ingredients:["300 g pommes de terre","20 cl lait","10 cl crème légère","1 gousse ail","salade"],
+     steps:["Trancher les pommes de terre.","Disposer avec ail, lait, crème.","Cuire 40 min à 180°C.","Servir avec salade."]},
+    {name:"Poisson blanc en papillote et riz",kcal:445,cost:2.15,time:25,veg:false,p:34,c:50,f:9,
+     desc:"Poisson blanc, légumes, citron et riz.",
+     ingredients:["150 g poisson blanc","70 g riz cru","1 courgette","1 carotte","1 citron","1 c. à soupe huile"],
+     steps:["Préchauffer à 190°C.","Disposer légumes et poisson sur papier cuisson.","Citronner, huiler, fermer.","Cuire 20 min.","Servir avec riz."]},
+    {name:"Cabillaud, purée de patate douce et brocolis",kcal:470,cost:2.35,time:25,veg:false,p:34,c:48,f:12,
+     desc:"Cabillaud, patate douce et brocolis.",
+     ingredients:["150 g cabillaud","200 g patate douce","150 g brocolis","1 c. à soupe huile","citron"],
+     steps:["Cuire patate douce et brocolis.","Écraser la patate douce.","Cuire le cabillaud à la poêle.","Servir."]},
+    {name:"Cabillaud tomate-olives et semoule",kcal:480,cost:2.30,time:25,veg:false,p:34,c:52,f:12,season:[6,7,8,9],
+     desc:"Cabillaud mijoté à la tomate et olives, semoule.",
+     ingredients:["150 g cabillaud","70 g semoule","200 g tomates concassées","30 g olives","1 gousse ail","herbes"],
+     steps:["Faire mijoter tomate, ail, olives.","Ajouter cabillaud 10 min.","Servir avec semoule."]},
+    {name:"Saumon, quinoa et courgettes",kcal:520,cost:2.60,time:20,veg:false,p:34,c:46,f:22,season:[6,7,8,9],
+     desc:"Saumon, quinoa et courgettes poêlées.",
+     ingredients:["120 g saumon","70 g quinoa","1 courgette","1 c. à soupe huile","citron"],
+     steps:["Cuire le quinoa.","Poêler le saumon.","Poêler les courgettes.","Assembler."]},
+    {name:"Saumon au four, pommes de terre et brocolis",kcal:535,cost:2.65,time:30,veg:false,p:34,c:48,f:22,
+     desc:"Saumon rôti, pommes de terre et brocolis.",
+     ingredients:["120 g saumon","200 g pommes de terre","150 g brocolis","1 c. à soupe huile","citron"],
+     steps:["Préchauffer à 200°C.","Rôtir saumon et pommes de terre 25 min.","Cuire brocolis.","Servir."]},
+    {name:"Colin citronné, riz et épinards",kcal:450,cost:2.10,time:20,veg:false,p:34,c:50,f:10,
+     desc:"Colin, citron, riz et épinards.",
+     ingredients:["150 g colin","70 g riz cru","150 g épinards","1 citron","1 c. à soupe huile"],
+     steps:["Cuire le riz.","Poêler colin au citron.","Faire tomber épinards.","Servir."]},
+    {name:"Crevettes ail-tomate et spaghetti",kcal:500,cost:2.40,time:20,veg:false,p:32,c:64,f:12,
+     desc:"Crevettes, tomate, ail et spaghetti.",
+     ingredients:["120 g crevettes","80 g spaghetti","200 g tomates concassées","2 gousses ail","persil"],
+     steps:["Cuire spaghetti.","Faire revenir ail, crevettes, tomate.","Mélanger, parsemer de persil."]},
+    {name:"Poke bowl saumon, riz et avocat",kcal:535,cost:2.70,time:15,veg:false,p:30,c:62,f:18,
+     desc:"Saumon mariné, riz, avocat et crudités.",
+     ingredients:["120 g saumon","80 g riz cru","1/2 avocat","1 carotte","1 concombre","sauce soja"],
+     steps:["Cuire le riz.","Mariner le saumon à la sauce soja.","Assembler bol avec légumes et avocat."]},
+    {name:"Salade César légère au poulet",kcal:455,cost:1.90,time:15,veg:false,p:36,c:24,f:24,
+     desc:"Salade, poulet grillé, croûtons et parmesan.",
+     ingredients:["125 g poulet","salade romaine","1 tranche pain","20 g parmesan","sauce yaourt-citron"],
+     steps:["Griller le poulet.","Toaster le pain.","Mélanger salade, poulet, croûtons, parmesan."]},
+    {name:"Salade niçoise légère",kcal:460,cost:1.90,time:20,veg:false,p:30,c:34,f:22,
+     desc:"Thon, œuf, tomates, haricots verts et pommes de terre.",
+     ingredients:["1 boîte thon","2 œufs","2 tomates","100 g haricots verts","150 g pommes de terre","olives"],
+     steps:["Cuire œufs, haricots, pommes de terre.","Assembler avec thon, tomates, olives."]},
+    {name:"Salade de pommes de terre au thon",kcal:475,cost:1.55,time:20,veg:false,p:28,c:48,f:18,
+     desc:"Pommes de terre, thon, œuf et crudités.",
+     ingredients:["250 g pommes de terre","1 boîte thon","1 œuf","1 tomate","vinaigrette légère"],
+     steps:["Cuire pommes de terre et œuf.","Mélanger thon, tomate, pommes de terre.","Ajouter œuf dur et vinaigrette."]},
+    {name:"Wrap poulet et crudités",kcal:465,cost:1.80,time:12,veg:false,p:34,c:46,f:14,
+     desc:"Wrap, poulet, salade, carottes et sauce yaourt.",
+     ingredients:["1 wrap","125 g poulet","salade","1 carotte","sauce yaourt"],
+     steps:["Griller le poulet.","Garnir le wrap de crudités et poulet.","Rouler."]},
+    {name:"Wrap thon, œuf et crudités",kcal:450,cost:1.55,time:10,veg:false,p:28,c:44,f:16,
+     desc:"Wrap, thon, œuf et crudités.",
+     ingredients:["1 wrap","1 boîte thon","1 œuf","salade","sauce yaourt"],
+     steps:["Cuire l'œuf dur.","Garnir le wrap.","Rouler."]},
+    {name:"Wrap falafels et crudités",kcal:480,cost:1.20,time:15,veg:true,p:18,c:64,f:16,
+     desc:"Falafels, pita ou wrap, crudités et sauce yaourt.",
+     ingredients:["1 wrap","4 falafels","salade","1 tomate","sauce yaourt"],
+     steps:["Réchauffer les falafels.","Garnir le wrap.","Rouler."]},
+    {name:"Burger maison au bœuf et salade",kcal:560,cost:1.80,time:20,veg:false,p:36,c:52,f:22,
+     desc:"Pain burger, steak maigre, tomate, salade et sauce légère.",
+     ingredients:["1 pain burger","125 g bœuf haché","1 tomate","salade","sauce légère"],
+     steps:["Former et cuire le steak.","Toaster le pain.","Assembler avec garnitures."]},
+    {name:"Burger maison aux haricots noirs",kcal:510,cost:1.30,time:20,veg:true,p:20,c:68,f:16,
+     desc:"Galette de haricots noirs, pain et crudités.",
+     ingredients:["1 pain burger","150 g haricots noirs","1 oignon","épices","tomate","salade"],
+     steps:["Écraser haricots avec oignon et épices.","Former et cuire les galettes.","Assembler."]},
+    {name:"Tofu sauté, riz et brocolis",kcal:475,cost:1.45,time:18,veg:true,p:26,c:56,f:14,
+     desc:"Tofu mariné, riz et brocolis.",
+     ingredients:["150 g tofu ferme","70 g riz cru","150 g brocolis","sauce soja","1 gousse ail"],
+     steps:["Mariner le tofu.","Cuire riz et brocolis.","Sauter tofu au wok.","Assembler."]},
+    {name:"Nouilles sautées tofu-légumes",kcal:490,cost:1.35,time:18,veg:true,p:24,c:62,f:14,
+     desc:"Nouilles, tofu, légumes et sauce soja.",
+     ingredients:["80 g nouilles","150 g tofu","1 carotte","1 poivron","sauce soja"],
+     steps:["Cuire les nouilles.","Sauter tofu et légumes.","Ajouter nouilles et sauce soja."]},
+    {name:"Buddha bowl quinoa-pois chiches",kcal:510,cost:1.50,time:25,veg:true,p:22,c:68,f:16,
+     desc:"Quinoa, pois chiches, légumes rôtis et sauce tahini.",
+     ingredients:["70 g quinoa","150 g pois chiches","1 patate douce","1 courgette","1 c. à soupe tahini"],
+     steps:["Rôtir légumes 25 min à 200°C.","Cuire le quinoa.","Assembler avec pois chiches.","Napper de tahini."]},
+    {name:"Frittata pommes de terre et courgettes",kcal:470,cost:1.25,time:25,veg:true,p:22,c:42,f:22,season:[6,7,8,9],
+     desc:"Œufs, pommes de terre, courgettes et herbes.",
+     ingredients:["4 œufs","200 g pommes de terre","1 courgette","1 oignon","herbes de Provence"],
+     steps:["Cuire pommes de terre et courgette.","Battre les œufs.","Verser dans la poêle et cuire 15 min."]},
+    {name:"Soupe de légumes, œuf et tartine",kcal:400,cost:1.05,time:20,veg:true,p:18,c:44,f:14,
+     desc:"Soupe maison, œuf dur et pain complet.",
+     ingredients:["500 g légumes variés","1 cube bouillon","2 œufs","2 tranches pain complet"],
+     steps:["Cuire les légumes dans le bouillon 20 min.","Mixer.","Servir avec œuf dur et tartine."]},
+    {name:"Soupe lentilles-carottes et tartine",kcal:430,cost:.95,time:25,veg:true,p:20,c:60,f:8,
+     desc:"Soupe épaisse de lentilles et carottes.",
+     ingredients:["90 g lentilles","300 g carottes","1 oignon","1 cube bouillon","2 tranches pain"],
+     steps:["Faire revenir oignon.","Ajouter lentilles, carottes, bouillon, eau.","Cuire 25 min.","Mixer partiellement."]},
+    {name:"Tomates farcies au bœuf et riz",kcal:520,cost:1.90,time:40,veg:false,p:34,c:52,f:16,season:[6,7,8,9],
+     desc:"Tomates farcies au bœuf maigre, riz et herbes.",
+     ingredients:["2 grosses tomates","125 g bœuf haché","50 g riz cru","1 oignon","herbes"],
+     steps:["Évider les tomates.","Mélanger bœuf, riz, oignon, herbes.","Farcir.","Cuire 35 min à 190°C."]},
+    {name:"Poivrons farcis au bœuf et riz",kcal:525,cost:1.95,time:40,veg:false,p:34,c:54,f:16,season:[7,8,9],
+     desc:"Poivrons farcis au bœuf maigre et riz.",
+     ingredients:["2 poivrons","125 g bœuf haché","50 g riz cru","1 oignon","herbes"],
+     steps:["Évider les poivrons.","Mélanger bœuf, riz, oignon.","Farcir.","Cuire 35 min à 190°C."]},
+    {name:"Aubergines gratinées tomate-mozzarella",kcal:455,cost:1.35,time:35,veg:true,p:22,c:30,f:26,season:[6,7,8,9],
+     desc:"Aubergines, tomate, mozzarella et herbes.",
+     ingredients:["1 aubergine","200 g tomates concassées","100 g mozzarella","basilic","1 c. à soupe huile"],
+     steps:["Trancher et griller l'aubergine.","Monter en couches avec tomate et mozzarella.","Gratiner 20 min à 200°C."]},
+    {name:"Moussaka légère aux lentilles",kcal:520,cost:1.55,time:45,veg:true,p:22,c:60,f:20,
+     desc:"Aubergines, lentilles, tomate et béchamel légère.",
+     ingredients:["1 aubergine","90 g lentilles","200 g tomates concassées","20 cl lait","20 g farine"],
+     steps:["Griller les aubergines.","Mijoter lentilles et tomate.","Monter en couches avec béchamel.","Cuire 30 min à 190°C."]},
+    {name:"Paella poulet et légumes",kcal:550,cost:2.05,time:40,veg:false,p:36,c:68,f:12,season:[6,7,8,9],
+     desc:"Riz, poulet, petits pois et légumes.",
+     ingredients:["80 g riz","150 g poulet","100 g petits pois","1 poivron","1 tomate","épices paella"],
+     steps:["Faire revenir poulet et légumes.","Ajouter riz et bouillon.","Cuire 25 min sans remuer."]},
+    {name:"Riz cantonais léger",kcal:510,cost:1.45,time:20,veg:false,p:26,c:68,f:14,
+     desc:"Riz, œufs, petits pois et jambon.",
+     ingredients:["80 g riz cru","2 œufs","100 g petits pois","2 tranches jambon","sauce soja"],
+     steps:["Cuire le riz.","Brouiller les œufs.","Sauter riz, jambon, petits pois, œufs."]},
+    {name:"Nasi goreng léger au poulet",kcal:540,cost:1.80,time:25,veg:false,p:34,c:66,f:14,
+     desc:"Riz sauté, poulet, œuf et légumes.",
+     ingredients:["80 g riz cru","125 g poulet","1 œuf","1 carotte","sauce soja","curry"],
+     steps:["Cuire le riz.","Sauter poulet, carotte, œuf.","Ajouter riz, sauce soja, curry."]},
+    {name:"Poêlée pommes de terre, œufs et légumes",kcal:470,cost:1.10,time:25,veg:true,p:20,c:48,f:20,
+     desc:"Pommes de terre rissolées, œufs et légumes.",
+     ingredients:["250 g pommes de terre","2 œufs","1 poivron","1 oignon","1 c. à soupe huile"],
+     steps:["Rissoler pommes de terre et légumes.","Casser les œufs dessus.","Couvrir 5 min."]},
+    {name:"Croque-monsieur léger et salade",kcal:500,cost:1.35,time:15,veg:false,p:28,c:44,f:22,
+     desc:"Pain complet, jambon, fromage et salade.",
+     ingredients:["4 tranches pain complet","2 tranches jambon","80 g fromage râpé","1 c. à café moutarde","salade"],
+     steps:["Préchauffer à 200°C.","Tartiner de moutarde, ajouter jambon et fromage.","Cuire 10-12 min.","Servir avec salade."]},
+    {name:"Galettes de sarrasin jambon-œuf-fromage",kcal:520,cost:1.60,time:15,veg:false,p:30,c:50,f:20,
+     desc:"Galette bretonne au jambon, œuf et fromage.",
+     ingredients:["1 galette sarrasin","1 tranche jambon","1 œuf","30 g fromage râpé"],
+     steps:["Chauffer la galette.","Casser l'œuf au centre.","Ajouter jambon et fromage.","Replier les bords."]},
+    {name:"Galette de sarrasin chèvre-épinards",kcal:480,cost:1.40,time:15,veg:true,p:22,c:48,f:20,season:[10,11,12,1,2,3],
+     desc:"Galette bretonne, chèvre et épinards.",
+     ingredients:["1 galette sarrasin","60 g chèvre","150 g épinards","1 c. à soupe crème"],
+     steps:["Faire tomber les épinards.","Garnir la galette de chèvre et épinards.","Plier et chauffer 2 min."]}
   ],
   collation: [
-    {name:"Pomme et 10 amandes",kcal:180,cost:.50,time:1,desc:"Une pomme et une petite poignée d'amandes.",veg:true},
-    {name:"Banane",kcal:105,cost:.30,time:1,desc:"Une banane.",veg:true},
-    {name:"Poire et quelques noix",kcal:180,cost:.55,time:1,desc:"Une poire et quelques cerneaux de noix.",veg:true},
-    {name:"Yaourt nature",kcal:90,cost:.40,time:1,desc:"Un yaourt nature sans sucre ajouté.",veg:true},
-    {name:"Skyr nature",kcal:100,cost:.55,time:1,desc:"Un pot de skyr nature.",veg:true},
-    {name:"Fromage blanc et fruits rouges",kcal:130,cost:.65,time:2,desc:"Fromage blanc et fruits rouges.",veg:true},
-    {name:"Fromage blanc, miel et noix",kcal:190,cost:.65,time:2,desc:"Fromage blanc, miel et quelques noix.",veg:true},
-    {name:"Compote sans sucre",kcal:80,cost:.40,time:1,desc:"Compote de pommes sans sucre ajouté.",veg:true},
-    {name:"Carottes et houmous",kcal:150,cost:.60,time:3,desc:"Bâtonnets de carotte et houmous.",veg:true},
-    {name:"Concombre et tzatziki",kcal:120,cost:.55,time:3,desc:"Concombre croquant et sauce au yaourt.",veg:true},
-    {name:"2 carrés de chocolat noir et thé",kcal:95,cost:.30,time:2,desc:"Thé ou café et deux carrés de chocolat noir.",veg:true},
-    {name:"Tranche de pain complet et beurre de cacahuète",kcal:170,cost:.45,time:2,desc:"Pain complet et beurre de cacahuète.",veg:true},
-    {name:"Galettes de riz et purée d'amande",kcal:155,cost:.50,time:2,desc:"Deux galettes de riz et purée d'amande.",veg:true},
-    {name:"Clémentines",kcal:90,cost:.40,time:1,desc:"Deux clémentines.",veg:true},
-    {name:"Kiwi et poignée de noix",kcal:175,cost:.60,time:2,desc:"Un kiwi et quelques noix.",veg:true},
-    {name:"Petit-suisse nature et fruit",kcal:145,cost:.50,time:2,desc:"Petit-suisse et fruit de saison.",veg:true},
-    {name:"Œuf dur et tomates cerises",kcal:120,cost:.55,time:5,desc:"Un œuf dur et des tomates cerises.",veg:true},
-    {name:"Mini tartine chèvre et tomate",kcal:155,cost:.60,time:3,desc:"Petite tartine de chèvre et tomate.",veg:true},
-    {name:"Yaourt grec et une banane",kcal:180,cost:.70,time:2,desc:"Yaourt grec et petite banane.",veg:true},
-    {name:"Pop-corn maison",kcal:130,cost:.25,time:7,desc:"Pop-corn nature préparé avec peu de matière grasse.",veg:true}
+    {name:"Pomme et 10 amandes",kcal:180,cost:.50,time:1,veg:true,p:4,c:20,f:10,season:[9,10,11,12,1,2],
+     desc:"Une pomme et une petite poignée d'amandes.",
+     ingredients:["1 pomme","10 amandes"],
+     steps:["Laver la pomme.","Servir avec les amandes."]},
+    {name:"Banane",kcal:105,cost:.30,time:1,veg:true,p:1,c:27,f:0,
+     desc:"Une banane.",
+     ingredients:["1 banane"],steps:["Éplucher et déguster."]},
+    {name:"Poire et quelques noix",kcal:180,cost:.55,time:1,veg:true,p:3,c:22,f:10,season:[9,10,11,12,1],
+     desc:"Une poire et quelques cerneaux de noix.",
+     ingredients:["1 poire","3 noix"],
+     steps:["Couper la poire.","Ajouter les noix."]},
+    {name:"Yaourt nature",kcal:90,cost:.40,time:1,veg:true,p:5,c:7,f:4,
+     desc:"Un yaourt nature sans sucre ajouté.",
+     ingredients:["1 yaourt nature"],steps:["Déguster bien frais."]},
+    {name:"Skyr nature",kcal:100,cost:.55,time:1,veg:true,p:11,c:6,f:2,
+     desc:"Un pot de skyr nature.",
+     ingredients:["1 pot skyr"],steps:["Déguster."]},
+    {name:"Fromage blanc et fruits rouges",kcal:130,cost:.65,time:2,veg:true,p:10,c:14,f:3,season:[6,7,8],
+     desc:"Fromage blanc et fruits rouges.",
+     ingredients:["150 g fromage blanc","80 g fruits rouges"],
+     steps:["Verser le fromage blanc.","Ajouter les fruits."]},
+    {name:"Fromage blanc, miel et noix",kcal:190,cost:.65,time:2,veg:true,p:11,c:18,f:8,
+     desc:"Fromage blanc, miel et quelques noix.",
+     ingredients:["150 g fromage blanc","1 c. à café miel","15 g noix"],
+     steps:["Mélanger fromage blanc et miel.","Ajouter les noix."]},
+    {name:"Compote sans sucre",kcal:80,cost:.40,time:1,veg:true,p:1,c:19,f:0,
+     desc:"Compote de pommes sans sucre ajouté.",
+     ingredients:["1 pot compote sans sucre"],steps:["Déguster."]},
+    {name:"Carottes et houmous",kcal:150,cost:.60,time:3,veg:true,p:5,c:16,f:8,season:[9,10,11,12,1,2,3],
+     desc:"Bâtonnets de carotte et houmous.",
+     ingredients:["2 carottes","50 g houmous"],
+     steps:["Couper les carottes en bâtonnets.","Servir avec le houmous."]},
+    {name:"Concombre et tzatziki",kcal:120,cost:.55,time:3,veg:true,p:5,c:8,f:7,season:[6,7,8],
+     desc:"Concombre croquant et sauce au yaourt.",
+     ingredients:["1/2 concombre","80 g tzatziki"],
+     steps:["Couper le concombre.","Servir avec le tzatziki."]},
+    {name:"2 carrés de chocolat noir et thé",kcal:95,cost:.30,time:2,veg:true,p:1,c:8,f:6,
+     desc:"Thé ou café et deux carrés de chocolat noir.",
+     ingredients:["2 carrés chocolat noir","1 thé"],
+     steps:["Préparer le thé.","Déguster avec le chocolat."]},
+    {name:"Pain complet et beurre de cacahuète",kcal:170,cost:.45,time:2,veg:true,p:7,c:22,f:6,
+     desc:"Pain complet et beurre de cacahuète.",
+     ingredients:["1 tranche pain complet","1 c. à café beurre de cacahuète"],
+     steps:["Tartiner le pain.","Déguster."]},
+    {name:"Galettes de riz et purée d'amande",kcal:155,cost:.50,time:2,veg:true,p:3,c:20,f:7,
+     desc:"Deux galettes de riz et purée d'amande.",
+     ingredients:["2 galettes de riz","1 c. à café purée d'amande"],
+     steps:["Tartiner les galettes.","Déguster."]},
+    {name:"Clémentines",kcal:90,cost:.40,time:1,veg:true,p:1,c:22,f:0,season:[11,12,1,2],
+     desc:"Deux clémentines.",
+     ingredients:["2 clémentines"],steps:["Éplucher et déguster."]},
+    {name:"Kiwi et poignée de noix",kcal:175,cost:.60,time:2,veg:true,p:4,c:16,f:11,
+     desc:"Un kiwi et quelques noix.",
+     ingredients:["1 kiwi","15 g noix"],
+     steps:["Éplucher le kiwi.","Ajouter les noix."]},
+    {name:"Petit-suisse nature et fruit",kcal:145,cost:.50,time:2,veg:true,p:9,c:14,f:5,
+     desc:"Petit-suisse et fruit de saison.",
+     ingredients:["1 petit-suisse","1 fruit"],
+     steps:["Servir ensemble."]},
+    {name:"Œuf dur et tomates cerises",kcal:120,cost:.55,time:5,veg:true,p:7,c:5,f:8,season:[6,7,8,9],
+     desc:"Un œuf dur et des tomates cerises.",
+     ingredients:["1 œuf","100 g tomates cerises"],
+     steps:["Cuire l'œuf 9 min.","Servir avec les tomates."]},
+    {name:"Mini tartine chèvre et tomate",kcal:155,cost:.60,time:3,veg:true,p:6,c:18,f:7,
+     desc:"Petite tartine de chèvre et tomate.",
+     ingredients:["1 tranche pain","30 g chèvre","1 tomate"],
+     steps:["Griller le pain.","Tartiner de chèvre.","Ajouter la tomate."]},
+    {name:"Yaourt grec et une banane",kcal:180,cost:.70,time:2,veg:true,p:10,c:26,f:4,
+     desc:"Yaourt grec et petite banane.",
+     ingredients:["150 g yaourt grec","1 banane"],
+     steps:["Servir ensemble."]},
+    {name:"Pop-corn maison",kcal:130,cost:.25,time:7,veg:true,p:3,c:22,f:4,
+     desc:"Pop-corn nature préparé avec peu de matière grasse.",
+     ingredients:["30 g maïs à pop-corn","1 c. à café huile"],
+     steps:["Chauffer l'huile.","Faire éclater le maïs à couvert.","Saler légèrement."]}
   ]
 };
 
-// Historique des repas récents par profil (par prénom), pour varier les propositions.
-// Structure: { prenom: ["Nom recette 1", "Nom recette 2", ...] } — les N derniers noms utilisés.
+// ============================================================
+// HISTORIQUE (variation des menus)
+// ============================================================
 let recentHistory = {};
-const HISTORY_LENGTH = 45;
+const HISTORY_LENGTH = 60;
 
 function currentProfileKey(){
   const p = document.getElementById('prenom').value.trim().toLowerCase();
   return p || 'anonyme';
 }
-
-function currentDiet(){
-  const sel = document.getElementById('regime');
-  return sel ? sel.value : 'aucune';
+function currentDiet(){ return document.getElementById('regime')?.value || 'aucune'; }
+function currentStyle(){ return document.getElementById('styleMenu')?.value || 'equilibre'; }
+function mealCount(){ return parseInt(document.getElementById('nbRepas')?.value || '4', 10); }
+function exclusionsList(){
+  return (document.getElementById('exclusions')?.value || '')
+    .toLowerCase().split(',').map(x => x.trim()).filter(Boolean);
 }
-
-// Filtre une liste de recettes selon la préférence alimentaire choisie.
 function filterByDiet(arr, diet){
-  if (diet === 'vegetarien') {
-    const options = arr.filter(r => r.veg);
-    return options.length ? options : arr; // garde-fou si jamais la liste filtrée est vide
+  if (diet === 'vegetarien'){
+    const opts = arr.filter(r => r.veg);
+    return opts.length ? opts : arr;
   }
   return arr;
 }
-
-function exclusionsList(){
-  return (document.getElementById('exclusions')?.value || '')
-    .toLowerCase().split(',').map(x=>x.trim()).filter(Boolean);
-}
-
-function currentStyle(){
-  return document.getElementById('styleMenu')?.value || 'equilibre';
-}
-
-function mealCount(){
-  return parseInt(document.getElementById('nbRepas')?.value || '4',10);
-}
-
 function compatible(r, diet, exclusions){
   if (diet === 'vegetarien' && !r.veg) return false;
-  const hay = `${r.name} ${r.desc}`.toLowerCase();
+  const hay = `${r.name} ${r.desc} ${(r.ingredients||[]).join(' ')}`.toLowerCase();
   return !exclusions.some(x => hay.includes(x));
 }
 
+// Saisonnalité : bonus si les ingrédients principaux sont de saison
+function seasonScore(r){
+  if (!r.season) return 0;
+  const m = new Date().getMonth() + 1;
+  return r.season.includes(m) ? -25 : 15; // bonus si saison, pénalité sinon
+}
+
+// Score d'une recette pour un idéal kcal + style
 function scoreRecipe(r, ideal, style){
   let score = Math.abs(r.kcal - ideal);
-  if(style === 'economique') score += r.cost * 90;
-  if(style === 'rapide') score += r.time * 5;
-  if(style === 'gourmand') score -= Math.min(r.kcal, 550) * .08;
+  if (style === 'economique') score += r.cost * 90;
+  if (style === 'rapide') score += r.time * 5;
+  if (style === 'gourmand') score -= Math.min(r.kcal, 550) * .08;
+  if (style === 'proteine') score -= (r.p || 0) * 4;
+  score += seasonScore(r);
   score += Math.random() * 90;
   return score;
 }
 
+// Sélection : évite les plats récents, filtre diet + exclusions
 function pickBest(arr, avoidNames, diet, ideal){
   const recent = avoidNames || [];
   const exclusions = exclusionsList();
-  let pool = filterByDiet(arr, diet).filter(r => compatible(r,diet,exclusions));
+  let pool = filterByDiet(arr, diet).filter(r => compatible(r, diet, exclusions));
   let fresh = pool.filter(r => !recent.includes(r.name));
-  if (fresh.length >= Math.max(4, Math.floor(pool.length*.25))) pool = fresh;
-  if (!pool.length) pool = filterByDiet(arr,diet).filter(r=>compatible(r,diet,exclusions));
-  if (!pool.length) pool = filterByDiet(arr,diet);
-  return pool.slice().sort((a,b)=>scoreRecipe(a,ideal,currentStyle())-scoreRecipe(b,ideal,currentStyle()))[0];
+  // On garde le pool "frais" s'il reste assez de choix, sinon on relâche
+  if (fresh.length >= Math.max(4, Math.floor(pool.length * .25))) pool = fresh;
+  if (!pool.length) pool = filterByDiet(arr, diet).filter(r => compatible(r, diet, exclusions));
+  if (!pool.length) pool = filterByDiet(arr, diet);
+  if (!pool.length) pool = arr.slice();
+  return pool.slice().sort((a,b) =>
+    scoreRecipe(a, ideal, currentStyle()) - scoreRecipe(b, ideal, currentStyle())
+  )[0];
 }
 
+// Sauvegarde de l'historique (par profil)
+function saveHistory(key, names, prev){
+  const arr = (prev || []).concat(names);
+  recentHistory[key] = arr.slice(-HISTORY_LENGTH);
+}
+
+// ============================================================
+// GÉNÉRATION DE MENUS
+// ============================================================
 function allocateTargets(target, count){
-  if(count === 3) return [Math.round(target*.27),Math.round(target*.39),Math.round(target*.34)];
-  if(count === 5) return [Math.round(target*.22),Math.round(target*.34),Math.round(target*.28),Math.round(target*.08),Math.round(target*.08)];
-  return [Math.round(target*.25),Math.round(target*.35),Math.round(target*.30),Math.round(target*.10)];
+  if (count === 3) return [Math.round(target*.27), Math.round(target*.39), Math.round(target*.34)];
+  if (count === 5) return [Math.round(target*.22), Math.round(target*.34), Math.round(target*.28), Math.round(target*.08), Math.round(target*.08)];
+  return [Math.round(target*.25), Math.round(target*.35), Math.round(target*.30), Math.round(target*.10)];
 }
 
-function generateMenu(target, dayIndex=0){
+function generateMenu(target){
   const key = currentProfileKey();
   const recent = recentHistory[key] || [];
   const diet = currentDiet();
   const count = mealCount();
-  const targets = allocateTargets(target,count);
+  const targets = allocateTargets(target, count);
   const meals = [];
   const usedToday = [];
 
-  const breakfast = pickBest(RECIPES.petitDej,recent,diet,targets[0]);
-  meals.push({type:"Petit-déjeuner",cat:"petitDej",recipe:breakfast});
+  const breakfast = pickBest(RECIPES.petitDej, recent, diet, targets[0]);
+  meals.push({type:"Petit-déjeuner", cat:"petitDej", recipe:breakfast});
   usedToday.push(breakfast.name);
 
-  const lunch = pickBest(RECIPES.dejeunerDiner,recent.concat(usedToday),diet,targets[1]);
-  meals.push({type:"Déjeuner",cat:"dejeunerDiner",recipe:lunch});
+  const lunch = pickBest(RECIPES.dejeunerDiner, recent.concat(usedToday), diet, targets[1]);
+  meals.push({type:"Déjeuner", cat:"dejeunerDiner", recipe:lunch});
   usedToday.push(lunch.name);
 
-  const dinner = pickBest(RECIPES.dejeunerDiner,recent.concat(usedToday),diet,targets[2]);
-  meals.push({type:"Dîner",cat:"dejeunerDiner",recipe:dinner});
+  const dinner = pickBest(RECIPES.dejeunerDiner, recent.concat(usedToday), diet, targets[2]);
+  meals.push({type:"Dîner", cat:"dejeunerDiner", recipe:dinner});
   usedToday.push(dinner.name);
 
-  if(count >= 4){
-    const snack = pickBest(RECIPES.collation,recent.concat(usedToday),diet,targets[3]);
-    meals.push({type:"Collation",cat:"collation",recipe:snack});
+  if (count >= 4){
+    const snack = pickBest(RECIPES.collation, recent.concat(usedToday), diet, targets[3]);
+    meals.push({type:"Collation", cat:"collation", recipe:snack});
     usedToday.push(snack.name);
   }
-  if(count >= 5){
-    const snack2 = pickBest(RECIPES.collation,recent.concat(usedToday),diet,targets[4]);
-    meals.push({type:"Collation",cat:"collation",recipe:snack2});
+  if (count >= 5){
+    const snack2 = pickBest(RECIPES.collation, recent.concat(usedToday), diet, targets[4]);
+    meals.push({type:"Collation", cat:"collation", recipe:snack2});
     usedToday.push(snack2.name);
   }
 
-  const total = meals.reduce((s,m)=>s+m.recipe.kcal,0);
+  const total = meals.reduce((s,m) => s + m.recipe.kcal, 0);
   saveHistory(key, usedToday, recent);
-  return {meals,total};
+  return {meals, total};
 }
 
 function generateWeek(target){
-  const week=[];
-  for(let d=0;d<7;d++){
-    week.push(generateMenu(target,d));
-  }
+  const week = [];
+  // On simule l'ajout à l'historique pour vraiment varier sur 7 jours
+  for (let d = 0; d < 7; d++) week.push(generateMenu(target));
   return week;
 }
 
-function mealRowHtml(m, idx){
+// ============================================================
+// AFFICHAGE
+// ============================================================
+function macroBarHtml(r){
+  const total = (r.p*4 + r.c*4 + r.f*9) || 1;
+  const p = Math.round(r.p*4/total*100);
+  const c = Math.round(r.c*4/total*100);
+  const f = Math.max(0, 100 - p - c);
+  return `
+    <div class="macro-bar">
+      <span class="p" style="width:${p}%"></span>
+      <span class="c" style="width:${c}%"></span>
+      <span class="f" style="width:${f}%"></span>
+    </div>
+    <div class="macro-legend">Protéines ${r.p}g · Glucides ${r.c}g · Lipides ${r.f}g</div>
+  `;
+}
+
+function badgesHtml(r){
+  let html = '';
+  if (r.veg) html += `<span class="badge veg">Végé</span>`;
+  if (r.season && r.season.includes(new Date().getMonth()+1)) html += `<span class="badge season">De saison</span>`;
+  return html;
+}
+
+function mealRowHtml(m, idx, opts={}){
+  const r = m.recipe;
+  const showSwap = opts.showSwap !== false;
+  const ingredientList = (r.ingredients || []).map(x => `<li>${x}</li>`).join('');
+  const stepList = (r.steps || []).map(x => `<li>${x}</li>`).join('');
   return `
     <div class="meal-head">
       <div>
-        <div class="meal-type">${m.type}</div>
-        <div class="meal-name">${m.recipe.name}</div>
+        <div class="meal-type">${m.type}${badgesHtml(r)}</div>
+        <div class="meal-name">${r.name}</div>
       </div>
-      <div class="meal-meta">${m.recipe.kcal} kcal · ${m.recipe.cost.toFixed(1)} € · ${m.recipe.time} min</div>
+      <div class="meal-meta">${r.kcal} kcal · ${r.cost.toFixed(1)} € · ${r.time} min</div>
     </div>
-    <div class="meal-desc">${m.recipe.desc}</div>
-    <button type="button" class="ghost" style="margin-top:.6rem; font-size:.75rem; padding:.35rem .7rem;" data-swap="${idx}">Changer ce plat</button>
+    <div class="meal-desc">${r.desc}</div>
+    ${macroBarHtml(r)}
+    <div class="meal-actions">
+      ${showSwap ? `<button type="button" class="ghost" data-swap="${idx}">Changer ce plat</button>` : ''}
+      <button type="button" class="ghost" data-recipe='${JSON.stringify({name:r.name, kcal:r.kcal, p:r.p, c:r.c, f:r.f, time:r.time, cost:r.cost, desc:r.desc, ingredients:r.ingredients||[], steps:r.steps||[]}).replace(/'/g,"&#39;")}'>Voir la recette</button>
+    </div>
   `;
 }
 
 function recomputeDayTotal(){
-  const total = window._currentMeals.reduce((s, m) => s + m.recipe.kcal, 0);
-  const totalCost = window._currentMeals.reduce((s, m) => s + m.recipe.cost, 0);
-  document.getElementById('dayTotal').textContent = `${total} kcal · env. ${totalCost.toFixed(1)} €`;
+  const meals = window._currentMeals || [];
+  const total = meals.reduce((s,m) => s + m.recipe.kcal, 0);
+  const cost = meals.reduce((s,m) => s + m.recipe.cost, 0);
+  const p = meals.reduce((s,m) => s + (m.recipe.p||0), 0);
+  const c = meals.reduce((s,m) => s + (m.recipe.c||0), 0);
+  const f = meals.reduce((s,m) => s + (m.recipe.f||0), 0);
+  document.getElementById('dayTotal').textContent = `${total} kcal · env. ${cost.toFixed(1)} € · P${p}g / G${c}g / L${f}g`;
 }
 
 function renderMenu(target){
-  const { meals, total } = generateMenu(target);
+  const { meals } = generateMenu(target);
   window._currentMeals = meals;
   window._currentTarget = target;
   const list = document.getElementById('menuList');
@@ -644,6 +724,7 @@ function renderMenu(target){
   recomputeDayTotal();
   document.getElementById('menuCard').classList.remove('hidden');
   document.getElementById('addRecipeCard').classList.remove('hidden');
+  document.getElementById('shoppingCard').classList.add('hidden');
 }
 
 function renderWeek(target){
@@ -652,67 +733,107 @@ function renderWeek(target){
   const list = document.getElementById('menuList');
   list.innerHTML = '';
   window._currentMeals = week[0].meals;
-  week.forEach((day,di)=>{
-    const box=document.createElement('div');
-    box.className='week-day';
-    box.innerHTML=`<h3 style="margin:.8rem 0 .2rem;">${names[di]}</h3>`;
-    day.meals.forEach(m=>{
-      const row=document.createElement('div');
-      row.className='meal';
-      row.innerHTML=`<div class="meal-head"><div><div class="meal-type">${m.type}</div><div class="meal-name">${m.recipe.name}</div></div><div class="meal-meta">${m.recipe.kcal} kcal · ${m.recipe.cost.toFixed(1)} €</div></div><div class="meal-desc">${m.recipe.desc}</div>`;
+  window._currentWeek = week;
+  week.forEach((day, di) => {
+    const box = document.createElement('div');
+    box.className = 'week-day';
+    const total = day.meals.reduce((s,m) => s+m.recipe.kcal, 0);
+    const cost = day.meals.reduce((s,m) => s+m.recipe.cost, 0);
+    box.innerHTML = `<h3>${names[di]}</h3>
+      <div class="day-summary">${total} kcal · env. ${cost.toFixed(1)} €</div>`;
+    day.meals.forEach(m => {
+      const row = document.createElement('div');
+      row.className = 'meal';
+      const r = m.recipe;
+      row.innerHTML = `
+        <div class="meal-head">
+          <div>
+            <div class="meal-type">${m.type}${badgesHtml(r)}</div>
+            <div class="meal-name">${r.name}</div>
+          </div>
+          <div class="meal-meta">${r.kcal} kcal · ${r.cost.toFixed(1)} €</div>
+        </div>
+        <div class="meal-desc">${r.desc}</div>
+        <div class="meal-actions">
+          <button type="button" class="ghost" data-recipe='${JSON.stringify({name:r.name, kcal:r.kcal, p:r.p, c:r.c, f:r.f, time:r.time, cost:r.cost, desc:r.desc, ingredients:r.ingredients||[], steps:r.steps||[]}).replace(/'/g,"&#39;")}'>Voir la recette</button>
+        </div>
+      `;
       box.appendChild(row);
     });
-    const total=day.meals.reduce((s,m)=>s+m.recipe.kcal,0);
-    const cost=day.meals.reduce((s,m)=>s+m.recipe.cost,0);
-    const foot=document.createElement('div');
-    foot.className='day-total';
-    foot.innerHTML=`<span>Total ${names[di]}</span><span>${total} kcal · env. ${cost.toFixed(1)} €</span>`;
+    const foot = document.createElement('div');
+    foot.className = 'day-total';
+    foot.innerHTML = `<span>Total ${names[di]}</span><span>${total} kcal · env. ${cost.toFixed(1)} €</span>`;
     box.appendChild(foot);
     list.appendChild(box);
   });
-  document.getElementById('dayTotal').textContent='Semaine générée · 7 jours';
+  document.getElementById('dayTotal').textContent = 'Semaine générée · 7 jours';
   document.getElementById('menuCard').classList.remove('hidden');
   document.getElementById('addRecipeCard').classList.remove('hidden');
-  window._currentTarget=target;
-}
-
-document.getElementById('menuList');
-  list.innerHTML = '';
-  meals.forEach((m, idx) => {
-    const div = document.createElement('div');
-    div.className = 'meal';
-    div.innerHTML = mealRowHtml(m, idx);
-    list.appendChild(div);
-  });
-  recomputeDayTotal();
-  document.getElementById('menuCard').classList.remove('hidden');
-  document.getElementById('addRecipeCard').classList.remove('hidden');
+  document.getElementById('shoppingCard').classList.add('hidden');
   window._currentTarget = target;
 }
 
-// Remplace un seul repas du menu affiché, sans tout régénérer.
+// Remplace un seul repas (corrigé : utilise pickBest)
 function swapMeal(idx){
   const key = currentProfileKey();
   const recent = recentHistory[key] || [];
   const diet = currentDiet();
   const m = window._currentMeals[idx];
+  if (!m) return;
   const otherNamesToday = window._currentMeals.filter((_, i) => i !== idx).map(x => x.recipe.name);
-  const newRecipe = pick(RECIPES[m.cat], recent.concat(otherNamesToday, [m.recipe.name]), diet);
+  const newRecipe = pickBest(RECIPES[m.cat], recent.concat(otherNamesToday, [m.recipe.name]), diet, m.recipe.kcal);
+  if (!newRecipe) return;
   window._currentMeals[idx] = { ...m, recipe: newRecipe };
   saveHistory(key, [newRecipe.name], recent);
 
   const list = document.getElementById('menuList');
   const div = list.children[idx];
-  div.innerHTML = mealRowHtml(window._currentMeals[idx], idx);
+  if (div) div.innerHTML = mealRowHtml(window._currentMeals[idx], idx);
   recomputeDayTotal();
 }
 
+// ============================================================
+// ÉVÉNEMENTS
+// ============================================================
 document.getElementById('menuList').addEventListener('click', function(e){
-  const btn = e.target.closest('[data-swap]');
-  if (!btn) return;
-  swapMeal(parseInt(btn.getAttribute('data-swap'), 10));
+  const swapBtn = e.target.closest('[data-swap]');
+  if (swapBtn){ swapMeal(parseInt(swapBtn.getAttribute('data-swap'),10)); return; }
+  const recipeBtn = e.target.closest('[data-recipe]');
+  if (recipeBtn){
+    try {
+      const r = JSON.parse(recipeBtn.getAttribute('data-recipe'));
+      showRecipeModal(r);
+    } catch(err){ console.warn(err); }
+  }
 });
 
+function showRecipeModal(r){
+  const ings = (r.ingredients || []).map(x => `<li>${x}</li>`).join('') || '<li>—</li>';
+  const steps = (r.steps || []).map(x => `<li>${x}</li>`).join('') || '<li>—</li>';
+  const html = `
+    <div id="recipeModal" style="position:fixed;inset:0;background:rgba(43,38,32,.55);display:flex;align-items:center;justify-content:center;padding:1.2rem;z-index:50;">
+      <div style="background:var(--white);max-width:520px;width:100%;max-height:85vh;overflow:auto;padding:1.5rem 1.6rem;border:1px solid var(--line);">
+        <h3 style="margin-top:0;">${r.name}</h3>
+        <div class="meal-meta" style="margin-bottom:.5rem;">${r.kcal} kcal · ${r.cost.toFixed(1)} € · ${r.time} min · P${r.p}g / G${r.c}g / L${r.f}g</div>
+        <p class="meal-desc">${r.desc || ''}</p>
+        <h4>Ingrédients (1 portion)</h4>
+        <ul>${ings}</ul>
+        <h4>Préparation</h4>
+        <ol>${steps}</ol>
+        <div style="text-align:right;margin-top:1rem;">
+          <button class="ghost" id="closeRecipe">Fermer</button>
+        </div>
+      </div>
+    </div>
+  `;
+  const wrap = document.createElement('div');
+  wrap.innerHTML = html;
+  document.body.appendChild(wrap);
+  document.getElementById('closeRecipe').onclick = () => wrap.remove();
+  wrap.firstChild.addEventListener('click', e => { if (e.target === wrap.firstChild) wrap.remove(); });
+}
+
+// Formulaire profil
 document.getElementById('profileForm').addEventListener('submit', function(e){
   e.preventDefault();
   const poids = parseFloat(document.getElementById('poids').value);
@@ -723,16 +844,11 @@ document.getElementById('profileForm').addEventListener('submit', function(e){
   const deficit = parseFloat(document.getElementById('objectif').value);
   const regime = document.getElementById('regime').value;
 
-  // Formule de Mifflin-St Jeor
-  let bmr;
-  if (sexe === 'homme') {
-    bmr = 10 * poids + 6.25 * taille - 5 * age + 5;
-  } else {
-    bmr = 10 * poids + 6.25 * taille - 5 * age - 161;
-  }
+  let bmr = (sexe === 'homme')
+    ? 10*poids + 6.25*taille - 5*age + 5
+    : 10*poids + 6.25*taille - 5*age - 161;
   const maintien = bmr * activite;
   let cible = maintien - deficit;
-  // Garde-fou : ne jamais descendre sous le métabolisme de base
   if (cible < bmr) cible = bmr;
 
   document.getElementById('bmrVal').textContent = Math.round(bmr);
@@ -744,61 +860,86 @@ document.getElementById('profileForm').addEventListener('submit', function(e){
   renderMenu(Math.round(cible));
 });
 
-document.getElementById('btnRegen').addEventListener('click', function(){
+document.getElementById('btnRegen').addEventListener('click', () => {
   if (window._currentTarget) renderMenu(window._currentTarget);
 });
-document.getElementById('btnWeek').addEventListener('click', function(){
+document.getElementById('btnWeek').addEventListener('click', () => {
   if (window._currentTarget) renderWeek(window._currentTarget);
 });
+document.getElementById('btnPrint').addEventListener('click', () => window.print());
 
+// Liste de courses (agrégée depuis le menu affiché)
+document.getElementById('btnShopping').addEventListener('click', () => {
+  const meals = window._currentMeals || [];
+  const counts = {};
+  meals.forEach(m => {
+    (m.recipe.ingredients || []).forEach(ing => {
+      const clean = ing.replace(/^\d+([.,]\d+)?\s*(g|ml|cl|l|kg)?\s*/i, '').trim();
+      const key = clean.toLowerCase();
+      if (!counts[key]) counts[key] = { label: clean, count: 0 };
+      counts[key].count++;
+    });
+  });
+  const html = Object.values(counts)
+    .sort((a,b) => a.label.localeCompare(b.label))
+    .map(x => `<div>☐ ${x.label}${x.count > 1 ? ` <em>×${x.count}</em>` : ''}</div>`)
+    .join('');
+  document.getElementById('shoppingList').innerHTML = html || '<div>Aucun ingrédient à lister.</div>';
+  document.getElementById('shoppingCard').classList.remove('hidden');
+  document.getElementById('shoppingCard').scrollIntoView({behavior:'smooth'});
+});
+
+// ============================================================
+// FIREBASE : chargement / sauvegarde
+// ============================================================
 document.getElementById('btnLoad').addEventListener('click', async function(){
   const status = document.getElementById('saveStatus');
   const key = currentProfileKey();
-  if (!db) {
-    status.textContent = "Firebase non configuré — impossible de charger un profil.";
-    return;
-  }
-  if (key === 'anonyme') {
-    status.textContent = "Indique d'abord un prénom pour charger un profil.";
-    return;
-  }
+  if (!db){ status.textContent = "Firebase non configuré — impossible de charger un profil."; return; }
+  if (key === 'anonyme'){ status.textContent = "Indique d'abord un prénom."; return; }
   try {
     const doc = await db.collection('profils').doc(key).get();
-    if (!doc.exists) {
-      status.textContent = `Aucun profil trouvé pour "${document.getElementById('prenom').value.trim()}".`;
-      return;
-    }
+    if (!doc.exists){ status.textContent = `Aucun profil trouvé pour "${document.getElementById('prenom').value.trim()}".`; return; }
     const data = doc.data();
-    if (data.poids) document.getElementById('poids').value = data.poids;
-    if (data.taille) document.getElementById('taille').value = data.taille;
-    if (data.age) document.getElementById('age').value = data.age;
-    if (data.sexe) document.querySelector(`input[name=sexe][value=${data.sexe}]`).checked = true;
-    if (data.activite) document.getElementById('activite').value = data.activite;
-    if (data.deficit !== undefined) document.getElementById('objectif').value = data.deficit;
-    if (data.regime) document.getElementById('regime').value = data.regime;
-    if (data.nbRepas) document.getElementById('nbRepas').value = data.nbRepas;
-    if (data.styleMenu) document.getElementById('styleMenu').value = data.styleMenu;
-    if (data.exclusions !== undefined) document.getElementById('exclusions').value = data.exclusions;
+    const set = (id, v) => { if (v !== undefined && v !== null) document.getElementById(id).value = v; };
+    set('poids', data.poids); set('taille', data.taille); set('age', data.age);
+    if (data.sexe) { const el = document.querySelector(`input[name=sexe][value=${data.sexe}]`); if (el) el.checked = true; }
+    set('activite', data.activite); set('objectif', data.deficit); set('regime', data.regime);
+    set('nbRepas', data.nbRepas); set('styleMenu', data.styleMenu); set('exclusions', data.exclusions);
     if (data.recentMeals) recentHistory[key] = data.recentMeals;
-    let addedCount = 0;
-    if (Array.isArray(data.customRecipes)) {
+    let added = 0;
+    if (Array.isArray(data.customRecipes)){
       data.customRecipes.forEach(r => {
-        if (r && r.cat && RECIPES[r.cat] && !RECIPES[r.cat].some(existing => existing.name === r.name)) {
-          RECIPES[r.cat].push({ name: r.name, kcal: r.kcal, cost: r.cost, time: r.time, desc: r.desc, veg: !!r.veg });
-          addedCount++;
+        if (r && r.cat && RECIPES[r.cat] && !RECIPES[r.cat].some(e => e.name === r.name)){
+          RECIPES[r.cat].push({ name:r.name, kcal:r.kcal, cost:r.cost, time:r.time, desc:r.desc, veg:!!r.veg, p:r.p||0, c:r.c||0, f:r.f||0, ingredients:r.ingredients||[], steps:r.steps||[] });
+          added++;
         }
       });
     }
-    status.textContent = "Profil chargé ✓" + (addedCount ? ` (+${addedCount} recette(s) perso récupérée(s))` : "") + " — clique sur \"Calculer mon objectif\" pour voir ton menu.";
-  } catch(err) {
-    status.textContent = "Erreur lors du chargement : " + err.message;
-  }
+    status.textContent = "Profil chargé ✓" + (added ? ` (+${added} recette(s) perso)` : "") + ` — clique sur "Calculer mon objectif".`;
+  } catch(err){ status.textContent = "Erreur de chargement : " + err.message; }
+});
+
+document.getElementById('btnSave').addEventListener('click', async function(){
+  const status = document.getElementById('saveStatus');
+  if (!db){ status.textContent = "Firebase non configuré — profil non enregistré."; return; }
+  const key = currentProfileKey();
+  try {
+    await db.collection('profils').doc(key).set({
+      ...window._profile,
+      recentMeals: recentHistory[key] || [],
+      updatedAt: new Date().toISOString()
+    }, { merge: true });
+    status.textContent = "Profil enregistré ✓";
+  } catch(err){ status.textContent = "Erreur d'enregistrement : " + err.message; }
 });
 
 document.getElementById('addRecipeForm').addEventListener('submit', async function(e){
   e.preventDefault();
   const status = document.getElementById('addRecipeStatus');
   const cat = document.getElementById('rCategorie').value;
+  const ingredients = (document.getElementById('rIngredients').value || '').split('\n').map(x => x.trim()).filter(Boolean);
+  const steps = (document.getElementById('rSteps').value || '').split('\n').map(x => x.trim()).filter(Boolean);
   const recipe = {
     name: document.getElementById('rNom').value.trim(),
     kcal: parseFloat(document.getElementById('rKcal').value),
@@ -806,55 +947,40 @@ document.getElementById('addRecipeForm').addEventListener('submit', async functi
     time: parseFloat(document.getElementById('rTime').value),
     desc: document.getElementById('rDesc').value.trim() || "Recette ajoutée par toi.",
     veg: document.getElementById('rVeg').checked,
+    p: 0, c: 0, f: 0,
+    ingredients, steps,
     cat
   };
-  if (!recipe.name || !recipe.kcal || !recipe.cost || !recipe.time) {
-    status.textContent = "Merci de remplir au moins le nom, les calories, le coût et le temps.";
-    return;
+  if (!recipe.name || !recipe.kcal || !recipe.cost || !recipe.time){
+    status.textContent = "Merci de remplir au moins le nom, les calories, le coût et le temps."; return;
   }
-  if (RECIPES[cat].some(r => r.name === recipe.name)) {
-    status.textContent = "Une recette porte déjà ce nom dans cette catégorie.";
-    return;
+  if (RECIPES[cat].some(r => r.name === recipe.name)){
+    status.textContent = "Une recette porte déjà ce nom dans cette catégorie."; return;
   }
-  // Ajout immédiat au pool utilisé pour les prochains menus
-  RECIPES[cat].push({ name: recipe.name, kcal: recipe.kcal, cost: recipe.cost, time: recipe.time, desc: recipe.desc, veg: recipe.veg });
+  RECIPES[cat].push({ ...recipe });
   document.getElementById('addRecipeForm').reset();
 
   const key = currentProfileKey();
-  if (db && key !== 'anonyme') {
+  if (db && key !== 'anonyme'){
     try {
       await db.collection('profils').doc(key).set({
         customRecipes: firebase.firestore.FieldValue.arrayUnion(recipe)
       }, { merge: true });
-      status.textContent = `"${recipe.name}" ajoutée ✓ — elle pourra apparaître dans tes prochains menus et sera retrouvée à ton prochain chargement de profil.`;
-    } catch(err) {
-      status.textContent = `"${recipe.name}" ajoutée pour cette session, mais non sauvegardée (${err.message}).`;
+      status.textContent = `"${recipe.name}" ajoutée ✓ — elle sera retrouvée à ton prochain chargement.`;
+    } catch(err){
+      status.textContent = `"${recipe.name}" ajoutée en session, non sauvegardée (${err.message}).`;
     }
   } else {
-    status.textContent = `"${recipe.name}" ajoutée pour cette session (indique un prénom et connecte Firebase pour la garder de façon permanente).`;
+    status.textContent = `"${recipe.name}" ajoutée pour cette session.`;
   }
 });
 
-document.getElementById('btnSave').addEventListener('click', async function(){
-  const status = document.getElementById('saveStatus');
-  if (!db) {
-    status.textContent = "Firebase non configuré — profil non enregistré (config à compléter dans le code).";
-    return;
-  }
-  const key = currentProfileKey();
-  try {
-    await db.collection('profils').doc(key).set({
-      ...window._profile,
-      updatedAt: new Date().toISOString()
-    }, { merge: true });
-    status.textContent = "Profil enregistré ✓";
-  } catch(err) {
-    status.textContent = "Erreur lors de l'enregistrement : " + err.message;
-  }
-});
+// ============================================================
+// SEMAINE BUDGET 80 € (inchangée + macros)
+// ============================================================
 const WEEK_2P_80 = [
  {day:"Lundi", meals:[
-  {type:"Petit-déjeuner",name:"Porridge pomme-cannelle",kcal:315,ingredients:["80 g flocons d'avoine","400 ml lait","2 pommes","cannelle","10 g miel"],steps:["Faire chauffer le lait avec les flocons 5 min.","Ajouter les pommes en dés et la cannelle.","Servir avec le miel." ]},
+  {type:"Petit-déjeuner",name:"Porridge pomme-cannelle",kcal:315,ingredients:["80 g flocons d'avoine","400 ml lait","2 pommes","cannelle","10 g miel"],steps:["Faire chauffer le lait avec les flocons 5 min.","Ajouter les pommes en dés et la cannelle.","Servir avec le miel."]},
   {type:"Déjeuner",name:"Poulet moutarde, riz et haricots verts",kcal:490,ingredients:["300 g filets de poulet","140 g riz cru","400 g haricots verts","1 c. à soupe moutarde","10 cl crème légère","1 oignon"],steps:["Cuire le riz et les haricots verts.","Faire revenir l'oignon et le poulet en morceaux.","Ajouter moutarde et crème, mijoter 5 min.","Servir avec riz et haricots verts."]},
   {type:"Dîner",name:"Omelette champignons-fromage et salade",kcal:430,ingredients:["6 œufs","250 g champignons","50 g emmental râpé","1 salade verte","1 c. à soupe huile","vinaigrette"],steps:["Émincer et poêler les champignons.","Battre les œufs, ajouter fromage et champignons.","Cuire l'omelette à feu doux.","Servir avec la salade assaisonnée."]}
  ]},
@@ -895,26 +1021,30 @@ const SHOPPING_80 = [
 ];
 
 function renderBudgetWeek(){
- const budget=parseFloat(document.getElementById('weekBudget').value)||80;
- const people=parseInt(document.getElementById('weekPeople').value)||2;
- const factor=people/2;
- const r=document.getElementById('budgetWeekResult');
- let html=`<div class="budget-total"><span>Semaine pour ${people} personne(s)</span><span>Budget cible : ${budget.toFixed(0)} €</span></div>`;
- WEEK_2P_80.forEach(d=>{
-   html+=`<div class="week-day"><h3>${d.day}</h3>`;
-   d.meals.forEach(m=>{
-     html+=`<div class="meal"><div class="meal-head"><div><div class="meal-type">${m.type}</div><div class="meal-name">${m.name}</div></div><div class="meal-meta">${Math.round(m.kcal)} kcal</div></div>`;
-     html+=`<div class="recipe-box"><h4>Recette pour ${people} personne(s)</h4><strong>Ingrédients</strong><ul>${m.ingredients.map(x=>`<li>${x}${people===2?'':' × '+factor.toFixed(1)}`+'</li>').join('')}</ul><strong>Préparation</strong><ol>${m.steps.map(x=>`<li>${x}</li>`).join('')}</ol></div></div>`;
-   });
-   html+=`</div>`;
- });
- const baseTotal=SHOPPING_80.reduce((sum,x)=>{const m=x.match(/~([0-9]+(?:,[0-9]+)?) €/);return sum+(m?parseFloat(m[1].replace(',','.')):0)},0);
- const estimated=baseTotal*factor;
- html+=`<div class="budget-total"><span>Courses estimées</span><span>~ ${estimated.toFixed(0)} €</span></div>`;
- html+=`<h3 style="margin-top:1.3rem;">🛒 Liste de courses</h3><div class="shopping">${SHOPPING_80.map(x=>`<div>☐ ${x}</div>`).join('')}</div>`;
- r.innerHTML=html; r.classList.remove('hidden');
+  const budget = parseFloat(document.getElementById('weekBudget').value) || 80;
+  const people = parseInt(document.getElementById('weekPeople').value) || 2;
+  const factor = people / 2;
+  const r = document.getElementById('budgetWeekResult');
+  let html = `<div class="budget-total"><span>Semaine pour ${people} personne(s)</span><span>Budget cible : ${budget.toFixed(0)} €</span></div>`;
+  WEEK_2P_80.forEach(d => {
+    html += `<div class="week-day"><h3>${d.day}</h3>`;
+    d.meals.forEach(m => {
+      html += `<div class="meal"><div class="meal-head"><div><div class="meal-type">${m.type}</div><div class="meal-name">${m.name}</div></div><div class="meal-meta">${Math.round(m.kcal)} kcal</div></div>`;
+      html += `<div class="recipe-box"><h4>Recette pour ${people} personne(s)</h4><strong>Ingrédients</strong><ul>${m.ingredients.map(x => `<li>${x}${people===2?'':' × '+factor.toFixed(1)}</li>`).join('')}</ul><strong>Préparation</strong><ol>${m.steps.map(x => `<li>${x}</li>`).join('')}</ol></div></div>`;
+    });
+    html += `</div>`;
+  });
+  const baseTotal = SHOPPING_80.reduce((sum,x) => {
+    const m = x.match(/~([0-9]+(?:,[0-9]+)?) €/);
+    return sum + (m ? parseFloat(m[1].replace(',','.')) : 0);
+  }, 0);
+  const estimated = baseTotal * factor;
+  html += `<div class="budget-total"><span>Courses estimées</span><span>~ ${estimated.toFixed(0)} €</span></div>`;
+  html += `<h3 style="margin-top:1.3rem;">🛒 Liste de courses</h3><div class="shopping">${SHOPPING_80.map(x => `<div>☐ ${x}</div>`).join('')}</div>`;
+  r.innerHTML = html;
+  r.classList.remove('hidden');
 }
-document.getElementById('btnBudgetWeek').addEventListener('click',renderBudgetWeek);
+document.getElementById('btnBudgetWeek').addEventListener('click', renderBudgetWeek);
 renderBudgetWeek();
 </script>
 </body>
