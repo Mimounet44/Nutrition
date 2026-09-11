@@ -144,6 +144,15 @@
     <h2>Ton profil</h2>
     <form id="profileForm">
       <div class="row">
+        <div class="field" style="flex:2;">
+          <label for="prenom">Prénom (pour retrouver ton profil et varier tes menus)</label>
+          <input type="text" id="prenom" maxlength="30" required placeholder="ex: Yves">
+        </div>
+        <div class="field" style="flex:1; display:flex; align-items:flex-end;">
+          <button type="button" class="ghost" id="btnLoad" style="width:100%;">Charger ce profil</button>
+        </div>
+      </div>
+      <div class="row">
         <div class="field">
           <label for="poids">Poids (kg)</label>
           <input type="number" id="poids" min="30" max="250" step="0.1" required>
@@ -274,17 +283,33 @@ const RECIPES = {
   ]
 };
 
-function pick(arr, excludeName){
-  const options = excludeName ? arr.filter(r => r.name !== excludeName) : arr;
+// Historique des repas récents par profil (par prénom), pour varier les propositions.
+// Structure: { prenom: ["Nom recette 1", "Nom recette 2", ...] } — les N derniers noms utilisés.
+let recentHistory = {};
+const HISTORY_LENGTH = 8;
+
+function currentProfileKey(){
+  const p = document.getElementById('prenom').value.trim().toLowerCase();
+  return p || 'anonyme';
+}
+
+function pick(arr, avoidNames){
+  const avoid = avoidNames || [];
+  let options = arr.filter(r => !avoid.includes(r.name));
+  if (options.length === 0) options = arr; // si tout est exclu, on retombe sur la liste complète
   return options[Math.floor(Math.random() * options.length)];
 }
 
-// Compose un menu du jour en s'approchant de la cible calorique
+// Compose un menu du jour en s'approchant de la cible calorique, en évitant les plats
+// récemment servis à cette même personne pour varier les propositions.
 function generateMenu(target){
-  const petitDej = pick(RECIPES.petitDej);
-  const dejeuner = pick(RECIPES.dejeunerDiner);
-  let diner = pick(RECIPES.dejeunerDiner, dejeuner.name);
-  let collation = pick(RECIPES.collation);
+  const key = currentProfileKey();
+  const recent = recentHistory[key] || [];
+
+  const petitDej = pick(RECIPES.petitDej, recent);
+  const dejeuner = pick(RECIPES.dejeunerDiner, recent);
+  let diner = pick(RECIPES.dejeunerDiner, recent.concat([dejeuner.name]));
+  let collation = pick(RECIPES.collation, recent);
 
   let total = petitDej.kcal + dejeuner.kcal + diner.kcal + collation.kcal;
 
@@ -300,9 +325,18 @@ function generateMenu(target){
     meals.pop(); // retire la collation
     total -= collation.kcal;
   } else if (target - total > 250) {
-    const extra = pick(RECIPES.collation, collation.name);
+    const extra = pick(RECIPES.collation, recent.concat([collation.name]));
     meals.push({ type: "Collation", recipe: extra });
     total += extra.kcal;
+  }
+
+  // Met à jour l'historique de cette personne avec les plats du jour
+  const usedNames = meals.map(m => m.recipe.name);
+  const updated = usedNames.concat(recent).slice(0, HISTORY_LENGTH);
+  recentHistory[key] = updated;
+  if (db) {
+    db.collection('profils').doc(key).set({ recentMeals: updated }, { merge: true })
+      .catch(err => console.warn("Historique non sauvegardé:", err.message));
   }
 
   return { meals, total };
@@ -360,12 +394,43 @@ document.getElementById('profileForm').addEventListener('submit', function(e){
   document.getElementById('cibleVal').textContent = Math.round(cible);
   document.getElementById('resultCard').classList.remove('hidden');
 
-  window._profile = { poids, taille, age, sexe, activite, deficit, bmr, maintien, cible };
+  window._profile = { prenom: document.getElementById('prenom').value.trim(), poids, taille, age, sexe, activite, deficit, bmr, maintien, cible };
   renderMenu(Math.round(cible));
 });
 
 document.getElementById('btnRegen').addEventListener('click', function(){
   if (window._currentTarget) renderMenu(window._currentTarget);
+});
+
+document.getElementById('btnLoad').addEventListener('click', async function(){
+  const status = document.getElementById('saveStatus');
+  const key = currentProfileKey();
+  if (!db) {
+    status.textContent = "Firebase non configuré — impossible de charger un profil.";
+    return;
+  }
+  if (key === 'anonyme') {
+    status.textContent = "Indique d'abord un prénom pour charger un profil.";
+    return;
+  }
+  try {
+    const doc = await db.collection('profils').doc(key).get();
+    if (!doc.exists) {
+      status.textContent = `Aucun profil trouvé pour "${document.getElementById('prenom').value.trim()}".`;
+      return;
+    }
+    const data = doc.data();
+    if (data.poids) document.getElementById('poids').value = data.poids;
+    if (data.taille) document.getElementById('taille').value = data.taille;
+    if (data.age) document.getElementById('age').value = data.age;
+    if (data.sexe) document.querySelector(`input[name=sexe][value=${data.sexe}]`).checked = true;
+    if (data.activite) document.getElementById('activite').value = data.activite;
+    if (data.deficit !== undefined) document.getElementById('objectif').value = data.deficit;
+    if (data.recentMeals) recentHistory[key] = data.recentMeals;
+    status.textContent = "Profil chargé ✓ — clique sur \"Calculer mon objectif\" pour voir ton menu.";
+  } catch(err) {
+    status.textContent = "Erreur lors du chargement : " + err.message;
+  }
 });
 
 document.getElementById('btnSave').addEventListener('click', async function(){
@@ -374,11 +439,12 @@ document.getElementById('btnSave').addEventListener('click', async function(){
     status.textContent = "Firebase non configuré — profil non enregistré (config à compléter dans le code).";
     return;
   }
+  const key = currentProfileKey();
   try {
-    await db.collection('profils').doc(currentUid || 'anonyme_' + Date.now()).set({
+    await db.collection('profils').doc(key).set({
       ...window._profile,
       updatedAt: new Date().toISOString()
-    });
+    }, { merge: true });
     status.textContent = "Profil enregistré ✓";
   } catch(err) {
     status.textContent = "Erreur lors de l'enregistrement : " + err.message;
