@@ -135,6 +135,14 @@
   .week-day:first-child{border-top:none;margin-top:0;}
   #exclusions{width:100%;padding:.55rem .6rem;border:1px solid var(--line);background:var(--paper);font-family:inherit;font-size:.95rem;color:var(--ink);}
   @media(max-width:600px){.row{flex-direction:column;gap:0}.actions{flex-wrap:wrap}.actions button{width:100%;}}
+
+  .recipe-box{background:var(--paper);border:1px solid var(--line);padding:1rem;margin:.7rem 0 1rem;}
+  .recipe-box h4{font-family:'Source Serif 4',serif;margin:.1rem 0 .5rem;font-size:1.05rem;}
+  .recipe-box ul{margin:.4rem 0 .7rem;padding-left:1.2rem;}
+  .recipe-box ol{margin:.4rem 0;padding-left:1.2rem;}
+  .budget-total{display:flex;justify-content:space-between;border-top:2px solid var(--ink);padding-top:.7rem;margin-top:.8rem;font-family:'Source Serif 4',serif;}
+  .shopping{columns:2;column-gap:2rem;}
+  .shopping div{break-inside:avoid;padding:.15rem 0;}
 </style>
 </head>
 <body>
@@ -312,6 +320,18 @@
     </form>
     <div class="status" id="addRecipeStatus"></div>
   </section>
+
+
+<section class="card" id="weekBudgetCard">
+  <h2>Ma semaine à 2 — budget 80 €</h2>
+  <p class="meal-desc">Une semaine prévue pour 2 personnes, avec des recettes détaillées et une liste de courses. Le budget est une estimation et peut varier selon les magasins et les marques.</p>
+  <div class="row">
+    <div class="field"><label for="weekBudget">Budget maximum (€)</label><input type="number" id="weekBudget" min="30" max="200" step="1" value="80"></div>
+    <div class="field"><label for="weekPeople">Nombre de personnes</label><input type="number" id="weekPeople" min="1" max="8" step="1" value="2"></div>
+  </div>
+  <button type="button" id="btnBudgetWeek">Générer ma semaine</button>
+  <div id="budgetWeekResult" class="hidden" style="margin-top:1.2rem;"></div>
+</section>
 
   <p class="note">Ces valeurs sont des estimations générales (formule de Mifflin-St Jeor) données à titre indicatif — elles ne remplacent pas l'avis d'un médecin ou d'un·e diététicien·ne, en particulier pour tout objectif de perte de poids soutenu ou prolongé.</p>
 </div>
@@ -832,6 +852,70 @@ document.getElementById('btnSave').addEventListener('click', async function(){
     status.textContent = "Erreur lors de l'enregistrement : " + err.message;
   }
 });
+const WEEK_2P_80 = [
+ {day:"Lundi", meals:[
+  {type:"Petit-déjeuner",name:"Porridge pomme-cannelle",kcal:315,ingredients:["80 g flocons d'avoine","400 ml lait","2 pommes","cannelle","10 g miel"],steps:["Faire chauffer le lait avec les flocons 5 min.","Ajouter les pommes en dés et la cannelle.","Servir avec le miel." ]},
+  {type:"Déjeuner",name:"Poulet moutarde, riz et haricots verts",kcal:490,ingredients:["300 g filets de poulet","140 g riz cru","400 g haricots verts","1 c. à soupe moutarde","10 cl crème légère","1 oignon"],steps:["Cuire le riz et les haricots verts.","Faire revenir l'oignon et le poulet en morceaux.","Ajouter moutarde et crème, mijoter 5 min.","Servir avec riz et haricots verts."]},
+  {type:"Dîner",name:"Omelette champignons-fromage et salade",kcal:430,ingredients:["6 œufs","250 g champignons","50 g emmental râpé","1 salade verte","1 c. à soupe huile","vinaigrette"],steps:["Émincer et poêler les champignons.","Battre les œufs, ajouter fromage et champignons.","Cuire l'omelette à feu doux.","Servir avec la salade assaisonnée."]}
+ ]},
+ {day:"Mardi", meals:[
+  {type:"Petit-déjeuner",name:"Skyr, banane et amandes",kcal:300,ingredients:["400 g skyr","2 bananes","30 g amandes","20 g flocons d'avoine"],steps:["Répartir le skyr dans deux bols.","Ajouter banane en rondelles, avoine et amandes."]},
+  {type:"Déjeuner",name:"Pâtes bolognaise au bœuf maigre",kcal:545,ingredients:["180 g spaghetti","250 g bœuf haché 5%","400 g tomates concassées","1 oignon","1 carotte","1 c. à soupe huile","herbes de Provence"],steps:["Faire revenir oignon et carotte hachés.","Ajouter le bœuf et cuire 5 min.","Ajouter tomate et herbes, mijoter 20 min.","Cuire les pâtes et mélanger avec la sauce."]},
+  {type:"Dîner",name:"Soupe lentilles-carottes et tartines",kcal:430,ingredients:["180 g lentilles vertes","500 g carottes","1 poireau","1 oignon","1 cube de bouillon","4 tranches pain complet","40 g fromage"],steps:["Faire revenir oignon et poireau.","Ajouter carottes, lentilles, bouillon et 1 l d'eau.","Cuire environ 30 min.","Mixer partiellement et servir avec tartines et fromage."]}
+ ]},
+ {day:"Mercredi", meals:[
+  {type:"Petit-déjeuner",name:"Œufs brouillés et pain complet",kcal:380,ingredients:["4 œufs","4 tranches pain complet","2 tomates","10 g beurre"],steps:["Griller le pain et couper les tomates.","Battre les œufs.","Cuire doucement au beurre en remuant.","Servir immédiatement."]},
+  {type:"Déjeuner",name:"Chili con carne et riz",kcal:535,ingredients:["250 g bœuf haché","1 boîte haricots rouges 400 g","400 g tomates concassées","1 poivron","140 g riz cru","1 oignon","paprika, cumin"],steps:["Faire revenir oignon, poivron et bœuf.","Ajouter tomate, haricots et épices.","Mijoter 20 min.","Cuire le riz et servir avec le chili."]},
+  {type:"Dîner",name:"Quiche poireaux et salade",kcal:475,ingredients:["1 pâte brisée","3 poireaux","4 œufs","20 cl lait","60 g fromage râpé","1 salade"],steps:["Préchauffer à 180°C.","Faire fondre les poireaux 10 min.","Mélanger œufs, lait et fromage.","Garnir la pâte, ajouter les poireaux et cuire 35 min.","Servir avec salade."]}
+ ]},
+ {day:"Jeudi", meals:[
+  {type:"Petit-déjeuner",name:"Pancakes avoine et fruits",kcal:360,ingredients:["80 g flocons d'avoine mixés","2 œufs","1 banane","100 ml lait","1 c. à café levure","2 kiwis"],steps:["Mixer avoine, banane, œufs, lait et levure.","Cuire de petites louches dans une poêle antiadhésive.","Servir avec les kiwis."]},
+  {type:"Déjeuner",name:"Poisson blanc en papillote, riz et légumes",kcal:445,ingredients:["300 g colin ou cabillaud","140 g riz cru","2 courgettes","2 carottes","1 citron","1 c. à soupe huile"],steps:["Préchauffer à 190°C.","Émincer les légumes et les répartir sur deux feuilles de papier cuisson.","Poser le poisson, citronner et ajouter un filet d'huile.","Fermer les papillotes et cuire 20 min.","Servir avec le riz."]},
+  {type:"Dîner",name:"Ratatouille, œufs au plat et pain",kcal:420,ingredients:["1 aubergine","2 courgettes","2 tomates","1 poivron","1 oignon","4 œufs","4 tranches pain complet","1 c. à soupe huile"],steps:["Faire revenir l'oignon et le poivron.","Ajouter aubergine, courgettes et tomates.","Mijoter 25 min.","Cuire les œufs au plat et servir avec la ratatouille et le pain."]}
+ ]},
+ {day:"Vendredi", meals:[
+  {type:"Petit-déjeuner",name:"Fromage blanc, miel, noix et kiwi",kcal:320,ingredients:["400 g fromage blanc","2 kiwis","30 g noix","20 g miel","30 g muesli"],steps:["Répartir le fromage blanc.","Ajouter kiwi, noix, muesli et miel."]},
+  {type:"Déjeuner",name:"Poulet curry léger et riz",kcal:525,ingredients:["300 g poulet","140 g riz cru","1 oignon","1 carotte","200 ml lait de coco léger","curry","1 courgette"],steps:["Cuire le riz.","Faire revenir oignon, carotte et poulet.","Ajouter courgette, curry et lait de coco.","Mijoter 12 min et servir avec le riz."]},
+  {type:"Dîner",name:"Croque-monsieur léger et salade",kcal:500,ingredients:["4 grandes tranches pain complet","2 tranches jambon","80 g fromage râpé","1 salade","1 c. à café moutarde"],steps:["Préchauffer le four à 200°C.","Tartiner légèrement de moutarde, ajouter jambon et fromage.","Refermer et cuire 10-12 min.","Servir avec salade."]}
+ ]},
+ {day:"Samedi", meals:[
+  {type:"Petit-déjeuner",name:"Pain perdu et compote",kcal:365,ingredients:["4 tranches pain","2 œufs","150 ml lait","1 c. à café sucre","300 g compote","cannelle"],steps:["Battre œufs, lait et sucre.","Tremper rapidement le pain.","Dorer à la poêle quelques minutes par face.","Servir avec compote et cannelle."]},
+  {type:"Déjeuner",name:"Couscous poulet et légumes",kcal:545,ingredients:["300 g poulet","160 g semoule","3 carottes","2 courgettes","2 navets","1 boîte pois chiches","épices couscous","1 oignon"],steps:["Faire revenir oignon et poulet avec les épices.","Ajouter les légumes et couvrir d'eau.","Cuire 25 min puis ajouter les pois chiches.","Préparer la semoule et servir avec le bouillon et les légumes."]},
+  {type:"Dîner",name:"Pizza maison tomate-mozzarella et salade",kcal:530,ingredients:["1 pâte à pizza","250 g coulis tomate","125 g mozzarella","origan","1 salade"],steps:["Préchauffer le four à 220°C.","Étaler la pâte et répartir le coulis.","Ajouter mozzarella et origan.","Cuire 12-15 min.","Servir avec salade."]}
+ ]},
+ {day:"Dimanche", meals:[
+  {type:"Petit-déjeuner",name:"Tartines avocat et œuf",kcal:390,ingredients:["4 tranches pain complet","1 avocat","4 œufs","1 tomate","citron, poivre"],steps:["Écraser l'avocat avec citron et poivre.","Griller le pain.","Cuire les œufs mollets ou au plat.","Garnir les tartines et ajouter la tomate."]},
+  {type:"Déjeuner",name:"Poulet rôti, pommes de terre et carottes",kcal:520,ingredients:["4 cuisses de poulet","800 g pommes de terre","500 g carottes","2 oignons","1 c. à soupe huile","thym, paprika"],steps:["Préchauffer à 200°C.","Mettre poulet, pommes de terre, carottes et oignons dans un plat.","Ajouter huile et épices.","Cuire environ 50 min en retournant à mi-cuisson."]},
+  {type:"Dîner",name:"Dahl de lentilles corail et naan",kcal:490,ingredients:["180 g lentilles corail","1 oignon","2 carottes","400 g tomates concassées","200 ml lait de coco léger","curry, cumin","2 pains naan"],steps:["Faire revenir l'oignon et les carottes.","Ajouter lentilles, tomate, épices et 400 ml d'eau.","Cuire 20 min en remuant.","Ajouter le lait de coco 5 min avant la fin.","Réchauffer les naans et servir."]}
+ ]}
+];
+
+const SHOPPING_80 = [
+ "Poulet 1,2 kg — ~10,50 €","Bœuf haché 5% 500 g — ~6,50 €","Poisson blanc 300 g — ~4,50 €","Jambon 2 tranches — ~1,20 €","Œufs 18 — ~4,50 €","Lait 1,5 L — ~1,50 €","Skyr/fromage blanc 1,2 kg — ~4,50 €","Fromage râpé + mozzarella + fromage — ~5,50 €","Flocons d'avoine + muesli — ~2,50 €","Pain complet + pain — ~3,50 €","Riz 1 kg — ~2,20 €","Pâtes 500 g — ~1,00 €","Lentilles + lentilles corail — ~2,80 €","Semoule 500 g — ~1,20 €","Naan — ~1,50 €","Pâte à pizza + pâte brisée — ~3,00 €","Haricots rouges + pois chiches — ~2,00 €","Tomates concassées/coulis — ~3,00 €","Pommes de terre 2 kg — ~3,00 €","Carottes 2 kg — ~2,50 €","Courgettes 1 kg — ~2,50 €","Poireaux 3 — ~2,00 €","Aubergine + poivron + tomates — ~3,50 €","Salades + crudités — ~3,50 €","Fruits de saison — ~5,50 €","Avocat + citron — ~2,00 €","Oignons + ail — ~1,50 €","Crème légère + lait de coco — ~2,50 €","Moutarde + épices + huile — ~2,50 €"
+];
+
+function renderBudgetWeek(){
+ const budget=parseFloat(document.getElementById('weekBudget').value)||80;
+ const people=parseInt(document.getElementById('weekPeople').value)||2;
+ const factor=people/2;
+ const r=document.getElementById('budgetWeekResult');
+ let html=`<div class="budget-total"><span>Semaine pour ${people} personne(s)</span><span>Budget cible : ${budget.toFixed(0)} €</span></div>`;
+ WEEK_2P_80.forEach(d=>{
+   html+=`<div class="week-day"><h3>${d.day}</h3>`;
+   d.meals.forEach(m=>{
+     html+=`<div class="meal"><div class="meal-head"><div><div class="meal-type">${m.type}</div><div class="meal-name">${m.name}</div></div><div class="meal-meta">${Math.round(m.kcal)} kcal</div></div>`;
+     html+=`<div class="recipe-box"><h4>Recette pour ${people} personne(s)</h4><strong>Ingrédients</strong><ul>${m.ingredients.map(x=>`<li>${x}${people===2?'':' × '+factor.toFixed(1)}`+'</li>').join('')}</ul><strong>Préparation</strong><ol>${m.steps.map(x=>`<li>${x}</li>`).join('')}</ol></div></div>`;
+   });
+   html+=`</div>`;
+ });
+ const baseTotal=SHOPPING_80.reduce((sum,x)=>{const m=x.match(/~([0-9]+(?:,[0-9]+)?) €/);return sum+(m?parseFloat(m[1].replace(',','.')):0)},0);
+ const estimated=baseTotal*factor;
+ html+=`<div class="budget-total"><span>Courses estimées</span><span>~ ${estimated.toFixed(0)} €</span></div>`;
+ html+=`<h3 style="margin-top:1.3rem;">🛒 Liste de courses</h3><div class="shopping">${SHOPPING_80.map(x=>`<div>☐ ${x}</div>`).join('')}</div>`;
+ r.innerHTML=html; r.classList.remove('hidden');
+}
+document.getElementById('btnBudgetWeek').addEventListener('click',renderBudgetWeek);
+renderBudgetWeek();
 </script>
 </body>
 </html>
