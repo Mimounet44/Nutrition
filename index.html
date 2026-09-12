@@ -3,14 +3,15 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Mon Menu du Jour — v10</title>
+<title>Mon Menu du Jour — v11</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍽️</text></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script>
-// Chargement robuste de jsPDF avec fallback
+// Chargement robuste de jsPDF avec 3 fallbacks
 (function(){
   function loadJsPDF(){
     return new Promise((resolve, reject) => {
@@ -69,6 +70,8 @@
   button.small{font-size:.72rem;padding:.32rem .65rem;}
   button.gold{background:var(--gold);}
   button.gold:hover{background:#9A6F09;}
+  button.danger{background:var(--tomato);}
+  button.danger:hover{background:#8B3A22;}
   .hidden{display:none;}
   .result-grid{display:flex;gap:1.5rem;flex-wrap:wrap;margin-bottom:.5rem;}
   .stat{flex:1;min-width:140px;}
@@ -92,6 +95,8 @@
   .actions{display:flex;gap:.7rem;margin-top:1.2rem;flex-wrap:wrap;}
   .note{font-size:.8rem;color:var(--ink-soft);margin-top:1.5rem;border-top:1px dashed var(--line);padding-top:1rem;}
   .status{font-size:.8rem;color:var(--ink-soft);margin-top:.6rem;}
+  .status.ok{color:var(--sage);}
+  .status.warn{color:var(--mustard);}
   .week-day{border-top:2px solid var(--ink);padding-top:.35rem;margin-top:1.3rem;}
   .week-day:first-child{border-top:none;margin-top:0;}
   .week-day h3{margin:.8rem 0 .2rem;font-size:1.15rem;}
@@ -398,6 +403,7 @@
       <button class="ghost" id="btnPDF">📄 PDF</button>
       <button class="ghost" id="btnPrint">🖨️ Imprimer</button>
       <button id="btnSave">Enregistrer</button>
+      <button class="danger small" id="btnWipeLocal" title="Vide toutes les données locales">🗑️</button>
     </div>
     <div class="status" id="saveStatus"></div>
   </section>
@@ -497,10 +503,40 @@
 
 <script>
 /* ============================================================
-   v10 — CORRIGÉ & STABLE
+   v11 — STOCKAGE HYBRIDE FIREBASE / LOCALSTORAGE
    ============================================================ */
 
-// ---------- FIREBASE (robuste) ----------
+// ---------- BACKEND LOCALSTORAGE ----------
+const LocalBackend = {
+  KEY_PREFIX: 'nutrition_app_',
+  read(key){
+    try {
+      const raw = localStorage.getItem(this.KEY_PREFIX + key);
+      return raw ? JSON.parse(raw) : null;
+    } catch(e){ console.warn("Lecture localStorage échouée:", e); return null; }
+  },
+  write(key, data){
+    try {
+      localStorage.setItem(this.KEY_PREFIX + key, JSON.stringify(data));
+      return true;
+    } catch(e){ console.warn("Écriture localStorage échouée:", e); return false; }
+  },
+  remove(key){
+    try { localStorage.removeItem(this.KEY_PREFIX + key); } catch(e){}
+  },
+  listAll(){
+    const keys = [];
+    try {
+      for (let i=0; i<localStorage.length; i++){
+        const k = localStorage.key(i);
+        if (k && k.startsWith(this.KEY_PREFIX)) keys.push(k);
+      }
+    } catch(e){}
+    return keys;
+  }
+};
+
+// ---------- FIREBASE ----------
 const firebaseConfig = {
   apiKey: "AIzaSyA3A1cTpCGpVcPiEOWC-4Vz4JYi3E6ZqYM",
   authDomain: "nutrition-energie.firebaseapp.com",
@@ -510,20 +546,35 @@ const firebaseConfig = {
   appId: "1:980063664505:web:f69a164c38fbfa9b78d7a8"
 };
 let db = null, currentUid = null, firebaseOk = false;
+let storageMode = 'local';
+
 try {
   firebase.initializeApp(firebaseConfig);
   db = firebase.firestore();
   firebase.auth().signInAnonymously()
-    .then(c => { currentUid = c.user ? c.user.uid : null; firebaseOk = true; })
-    .catch(e => {
-      console.warn("Auth anonyme indisponible — mode local :", e.message);
-      firebaseOk = false;
+    .then(c => {
+      currentUid = c.user ? c.user.uid : null;
+      firebaseOk = true;
+      storageMode = 'firebase';
+      console.log("✅ Firebase authentifié — synchronisation cloud activée");
       setTimeout(() => {
         const s = document.getElementById('saveStatus');
-        if (s) s.textContent = "⚠️ Firebase indisponible — profil non sauvegardé (session uniquement).";
+        if (s){ s.textContent = "☁️ Synchronisation Firebase activée"; s.className = "status ok"; }
+      }, 500);
+    })
+    .catch(e => {
+      console.warn("⚠️ Firebase indisponible — bascule en localStorage :", e.message);
+      firebaseOk = false;
+      storageMode = 'local';
+      setTimeout(() => {
+        const s = document.getElementById('saveStatus');
+        if (s){ s.textContent = "💾 Sauvegarde locale activée (Firebase indisponible)"; s.className = "status warn"; }
       }, 500);
     });
-} catch(e) { console.warn("Firebase non initialisé:", e.message); }
+} catch(e) {
+  console.warn("⚠️ Firebase non initialisé — bascule en localStorage :", e.message);
+  storageMode = 'local';
+}
 
 // ============================================================
 // BASE INGRÉDIENTS
@@ -646,7 +697,7 @@ function passesNutriMin(recipe, minLetter){
 }
 
 // ============================================================
-// SUBSTITUTS (moteur d'amélioration)
+// SUBSTITUTS
 // ============================================================
 const SUBSTITUTES = [
   { match:/crème fraîche|crème légère|crème/i, name:"Crème fraîche", replace:"Yaourt grec ou fromage blanc",
@@ -771,56 +822,42 @@ function autoImproveRecipe(recipe){
   return { recipe: current, applied, originalLetter: getNutriScore(recipe).letter, finalLetter: getNutriScore(current).letter };
 }
 
-// ---------- CORRECTIF 2 : autoImproveMenu + renderImprovePanel robustes ----------
 function autoImproveMenu(){
   if (!window._currentMeals && !window._currentWeek){
     alert("Génère d'abord un menu ou une semaine.");
     return;
   }
   const results = [];
-
   const processMeal = (meal) => {
     if (!meal || !meal.recipe || !meal.recipe.name) return null;
     const originalRecipe = meal.recipe;
     const res = autoImproveRecipe(originalRecipe);
     if (!res || !res.applied || !res.applied.length) return null;
     return {
-      meal,
-      oldRecipe: originalRecipe,
-      newRecipe: res.recipe,
-      applied: res.applied,
-      originalLetter: res.originalLetter,
-      finalLetter: res.finalLetter
+      meal, oldRecipe: originalRecipe, newRecipe: res.recipe,
+      applied: res.applied, originalLetter: res.originalLetter, finalLetter: res.finalLetter
     };
   };
-
   if (window._currentWeek){
     window._currentWeek.forEach(day => {
       (day.meals || []).forEach(meal => {
         const r = processMeal(meal);
-        if (r){
-          meal.recipe = r.newRecipe;
-          results.push(r);
-        }
+        if (r){ meal.recipe = r.newRecipe; results.push(r); }
       });
     });
     window._currentMeals = window._currentWeek[0] ? window._currentWeek[0].meals : window._currentMeals;
     renderImprovePanel(results);
-    renderWeek(window._currentTarget, true); // true = pas de record history
+    renderWeek(window._currentTarget, true);
   } else {
     (window._currentMeals || []).forEach(meal => {
       const r = processMeal(meal);
-      if (r){
-        meal.recipe = r.newRecipe;
-        results.push(r);
-      }
+      if (r){ meal.recipe = r.newRecipe; results.push(r); }
     });
     renderImprovePanel(results);
     renderMenu(window._currentTarget, true);
   }
   document.getElementById('improveCard').scrollIntoView({behavior:'smooth'});
 }
-
 function renderImprovePanel(results){
   const content = $('improveContent');
   if (!content) return;
@@ -865,7 +902,7 @@ function renderImprovePanel(results){
 }
 
 // ============================================================
-// CORRECTIF 1 : passesAllFilters GLOBAL + generateWeekAB corrigée
+// FILTRES GLOBAUX
 // ============================================================
 function passesAllFilters(r){
   if (!r) return false;
@@ -888,34 +925,26 @@ function generateWeekAB(target){
   const diet = currentDiet();
   const count = mealCount();
   const targets = allocateTargets(target, count);
-
   const poolAB = (arr) => {
     const filtered = filterByDiet(arr, diet).filter(passesAllFilters);
     const ab = filtered.filter(r => nutriRank(getNutriScore(r).letter) <= 1);
     return ab.length ? ab : filtered;
   };
-
   const poolBreakfast = poolAB(RECIPES.petitDej);
   const poolLunch = poolAB(RECIPES.dejeunerDiner);
   const poolSnack = poolAB(RECIPES.collation);
-
   const week = [];
   const usedWeek = [...recent];
   let totalAB = 0, totalMeals = 0;
-
   for (let d = 0; d < 7; d++){
     const meals = [];
     const usedToday = [];
-
     const bf = pickBest(poolBreakfast.length ? poolBreakfast : RECIPES.petitDej, usedWeek.concat(usedToday), diet, targets[0]);
     if (bf){ meals.push({type:"Petit-déjeuner", cat:"petitDej", recipe:bf}); usedToday.push(bf.name); }
-
     const lu = pickBest(poolLunch.length ? poolLunch : RECIPES.dejeunerDiner, usedWeek.concat(usedToday), diet, targets[1]);
     if (lu){ meals.push({type:"Déjeuner", cat:"dejeunerDiner", recipe:lu}); usedToday.push(lu.name); }
-
     const di = pickBest(poolLunch.length ? poolLunch : RECIPES.dejeunerDiner, usedWeek.concat(usedToday), diet, targets[2]);
     if (di){ meals.push({type:"Dîner", cat:"dejeunerDiner", recipe:di}); usedToday.push(di.name); }
-
     if (count >= 4){
       const s1 = pickBest(poolSnack.length ? poolSnack : RECIPES.collation, usedWeek.concat(usedToday), diet, targets[3]);
       if (s1){ meals.push({type:"Collation", cat:"collation", recipe:s1}); usedToday.push(s1.name); }
@@ -924,15 +953,12 @@ function generateWeekAB(target){
       const s2 = pickBest(poolSnack.length ? poolSnack : RECIPES.collation, usedWeek.concat(usedToday), diet, targets[4]);
       if (s2){ meals.push({type:"Collation", cat:"collation", recipe:s2}); usedToday.push(s2.name); }
     }
-
     meals.forEach(m => {
       totalMeals++;
       if (nutriRank(getNutriScore(m.recipe).letter) <= 1) totalAB++;
     });
-
     saveHistory(key, usedToday, usedWeek);
     usedWeek.push(...usedToday);
-
     const total = meals.reduce((s,m) => s + m.recipe.kcal, 0);
     week.push({ meals, total });
   }
@@ -1047,14 +1073,14 @@ function analyzeRecipeFridge(recipe, fridgeItems){
 }
 
 // ============================================================
-// BASE DE RECETTES (identique v9 condensée)
+// BASE DE RECETTES (condensée)
 // ============================================================
 const RECIPES = {
   petitDej: [
     {name:"Porridge avoine, banane et miel",kcal:330,cost:.65,time:5,veg:true,p:12,c:55,f:8,desc:"Avoine, lait, banane et miel.",ingredients:["50 g flocons d'avoine","200 ml lait","1 banane","1 c. à café miel","cannelle"],steps:["Cuire 5 min.","Ajouter banane.","Miel."],prepBatch:"Portions sèches."},
     {name:"Porridge pomme-cannelle",kcal:315,cost:.60,time:7,veg:true,p:11,c:54,f:7,season:[9,10,11,12,1,2],desc:"Avoine, pomme, cannelle.",ingredients:["50 g flocons d'avoine","200 ml lait","1 pomme","cannelle"],steps:["Cuire.","Pomme."],prepBatch:"Portions."},
     {name:"Porridge chocolat-banane",kcal:345,cost:.70,time:6,veg:true,p:13,c:56,f:9,desc:"Avoine cacao banane.",ingredients:["50 g flocons d'avoine","200 ml lait","1 banane","1 c. à café cacao"],steps:["Cuire."],prepBatch:"Portions."},
-    {name:"Overnight oats fruits rouges",kcal:320,cost:.85,time:5,veg:true,p:14,c:50,f:8,season:[6,7,8],desc:"Avoine, yaourt, fruits rouges.",ingredients:["40 g flocons d'avoine","100 g yaourt nature","100 g fruits rouges","1 c. à café graines de chia"],steps:["Mélanger.","Au frais une nuit."],prepBatch:"3-4 bocaux."},
+    {name:"Overnight oats fruits rouges",kcal:320,cost:.85,time:5,veg:true,p:14,c:50,f:8,season:[6,7,8],desc:"Avoine, yaourt, fruits rouges.",ingredients:["40 g flocons d'avoine","100 g yaourt nature","100 g fruits rouges","1 c. à café graines de chia"],steps:["Mélanger.","Au frais."],prepBatch:"Bocaux."},
     {name:"Œufs brouillés et pain complet",kcal:380,cost:1.10,time:8,veg:true,p:22,c:35,f:16,desc:"Œufs brouillés.",ingredients:["2 œufs","2 tranches pain complet","1 tomate","10 g beurre"],steps:["Griller.","Brouiller."],prepBatch:null},
     {name:"Œufs au plat, tartines et fruit",kcal:370,cost:1.00,time:8,veg:true,p:20,c:36,f:15,desc:"Œufs au plat.",ingredients:["2 œufs","2 tranches pain complet","1 fruit","5 g huile"],steps:["Cuire."],prepBatch:null},
     {name:"Omelette jambon-fromage",kcal:400,cost:1.30,time:10,veg:false,p:28,c:6,f:29,desc:"Omelette jambon.",ingredients:["3 œufs","50 g jambon blanc","30 g fromage râpé","1 noix de beurre"],steps:["Cuire."],prepBatch:null},
@@ -1203,10 +1229,21 @@ function recordWeekHistory(week){
   nutriHistory.push(entry);
   if (nutriHistory.length > 26) nutriHistory.shift();
   renderHistory();
-  if (db && firebaseOk && window._profile && window._profile.prenom){
+  // Persistance hybride
+  if (window._profile && window._profile.prenom){
     const key = currentProfileKey();
-    db.collection('profils').doc(key).set({ nutriHistory: nutriHistory.slice(-26) }, { merge: true })
-      .catch(e => console.warn("Historique non sauvegardé:", e.message));
+    const histPayload = { nutriHistory: nutriHistory.slice(-26) };
+    if (db && firebaseOk){
+      db.collection('profils').doc(key).set(histPayload, { merge: true })
+        .catch(e => {
+          console.warn("Firebase hist échoué, fallback local:", e.message);
+          const existing = LocalBackend.read('profil_' + key) || {};
+          LocalBackend.write('profil_' + key, { ...existing, ...histPayload });
+        });
+    } else {
+      const existing = LocalBackend.read('profil_' + key) || {};
+      LocalBackend.write('profil_' + key, { ...existing, ...histPayload });
+    }
   }
 }
 function renderHistory(){
@@ -1556,7 +1593,6 @@ function recomputeDayTotal(){
     $('nutriGlobalBadge').innerHTML = nutriBadge(globalLetter, true);
   }
 }
-// Ajout d'un flag pour ne pas re-enregistrer l'historique après amélioration
 function renderMenu(target, skipHistory){
   const { meals } = generateMenu(target);
   window._currentMeals = meals;
@@ -1973,6 +2009,15 @@ function updateFridgeStatus(){
   status.innerHTML = `<span class="ok">${totalOK} recettes 100% faisables</span> · <span class="partial">${totalTol} avec ≤2 manquants</span> sur ${all.length}.`;
 }
 
+// Helper : collecte toutes les recettes perso
+function collectCustomRecipes(){
+  const all = [];
+  Object.entries(RECIPES).forEach(([cat, arr]) => {
+    arr.forEach(r => { if (r._custom) all.push({ ...r, cat }); });
+  });
+  return all;
+}
+
 // ============================================================
 // ÉVÉNEMENTS
 // ============================================================
@@ -2044,11 +2089,20 @@ $('btnShopping').addEventListener('click', () => {
   $('shoppingCard').scrollIntoView({behavior:'smooth'});
 });
 
+// Bouton Wipe local
+$('btnWipeLocal').addEventListener('click', () => {
+  if (!confirm("Effacer toutes les données locales (profils, historique) ?")) return;
+  const keys = LocalBackend.listAll();
+  keys.forEach(k => { try { localStorage.removeItem(k); } catch(e){} });
+  $('saveStatus').textContent = `${keys.length} clé(s) locale(s) supprimée(s).`;
+  $('saveStatus').className = 'status ok';
+});
+
 // PDF (avec chargement robuste jsPDF)
 async function ensureJsPDF(){
   if (!window.jspdf && window._loadJsPDF){
     try { await window._loadJsPDF(); }
-    catch(e){ alert("Impossible de charger jsPDF (bloqué par le navigateur). Essaie d'autoriser cdnjs/unpkg dans les paramètres de confidentialité."); throw e; }
+    catch(e){ alert("Impossible de charger jsPDF (bloqué par le navigateur). Essaie d'autoriser unpkg/jsdelivr dans les paramètres de confidentialité."); throw e; }
   }
   return window.jspdf;
 }
@@ -2090,7 +2144,7 @@ async function exportPDF(){
         const r = m.recipe;
         const ns = getNutriScore(r);
         writeLine(`${m.type} — ${r.name}  [Nutri-Score ${ns.letter}]`, { size:11, style:'bold', space:5 });
-        writeLine(`${r.kcal} kcal · env. ${r.cost.toFixed(2)} € · P${r.p}g / G${r.c}g / L${r.f}g`, { size:9, color:[92,85,72], space:4.5 });
+        writeLine(`${r.kcal} kcal · env. ${r.cost.toFixed(2)} € · P${r.p||0}g / G${r.c||0}g / L${r.f||0}g`, { size:9, color:[92,85,72], space:4.5 });
         (r.ingredients||[]).forEach(ing => writeLine(`  • ${scaleIngredient(ing, serv)}`, { size:9, color:[92,85,72], space:4.5 }));
         (r.steps||[]).forEach((s, i) => writeLine(`  ${i+1}. ${s}`, { size:9, color:[92,85,72], space:4.5 }));
         y += 2;
@@ -2107,7 +2161,7 @@ async function exportPDF(){
       const ns = getNutriScore(r);
       if (y + 18 > pageH - margin){ doc.addPage(); y = margin; }
       writeLine(`${m.type} — ${r.name}  [Nutri-Score ${ns.letter}]`, { size:12, style:'bold', space:6 });
-      writeLine(`${r.kcal} kcal · env. ${r.cost.toFixed(2)} € · P${r.p}g / G${r.c}g / L${r.f}g · ${r.time} min`, { size:9, color:[92,85,72], space:4.5 });
+      writeLine(`${r.kcal} kcal · env. ${r.cost.toFixed(2)} € · P${r.p||0}g / G${r.c||0}g / L${r.f||0}g · ${r.time} min`, { size:9, color:[92,85,72], space:4.5 });
       writeLine(`Ingrédients (${serv} pers.) :`, { size:10, style:'bold', space:5 });
       (r.ingredients||[]).forEach(ing => writeLine(`  • ${scaleIngredient(ing, serv)}`, { size:9, color:[92,85,72], space:4.5 }));
       writeLine(`Préparation :`, { size:10, style:'bold', space:5 });
@@ -2144,69 +2198,100 @@ async function exportPDF(){
 $('btnPDF').addEventListener('click', exportPDF);
 $('btnPrintPDF').addEventListener('click', exportPDF);
 
-// Firebase
+// ============================================================
+// FIREBASE / LOCALSTORAGE : ENREGISTREMENT + CHARGEMENT
+// ============================================================
+$('btnSave').addEventListener('click', async function(){
+  const status = $('saveStatus');
+  const key = currentProfileKey();
+  if (!window._profile){ status.textContent = "Calcule d'abord ton objectif."; return; }
+
+  const profileData = {
+    ...window._profile,
+    tags: currentTags(),
+    fridge: fridgeItems.slice(),
+    fridgeMode: currentFridgeMode(),
+    nutriMin: currentNutriMin(),
+    recentMeals: recentHistory[key] || [],
+    nutriHistory: nutriHistory.slice(-26),
+    customRecipes: collectCustomRecipes(),
+    updatedAt: new Date().toISOString()
+  };
+
+  // 1) Essai Firebase si dispo
+  if (db && firebaseOk){
+    try {
+      await db.collection('profils').doc(key).set(profileData, { merge: true });
+      status.textContent = "Profil enregistré ✓ (cloud)";
+      status.className = "status ok";
+      return;
+    } catch(err){
+      console.warn("Firebase write échoué, bascule localStorage :", err.message);
+    }
+  }
+  // 2) Fallback localStorage
+  if (LocalBackend.write('profil_' + key, profileData)){
+    status.textContent = "Profil enregistré ✓ (local)";
+    status.className = "status ok";
+  } else {
+    status.textContent = "❌ Échec de l'enregistrement local (localStorage bloqué ?)";
+    status.className = "status warn";
+  }
+});
+
 $('btnLoad').addEventListener('click', async function(){
   const status = $('saveStatus');
   const key = currentProfileKey();
-  if (!db || !firebaseOk){ status.textContent = "⚠️ Firebase indisponible — mode session uniquement."; return; }
   if (key === 'anonyme'){ status.textContent = "Indique un prénom."; return; }
-  try {
-    const snap = await db.collection('profils').doc(key).get();
-    if (!snap.exists){ status.textContent = `Aucun profil pour "${$('prenom').value.trim()}".`; return; }
-    const data = snap.data();
-    const set = (id, v) => { if (v !== undefined && v !== null) $(id).value = v; };
-    set('poids', data.poids); set('taille', data.taille); set('age', data.age);
-    if (data.sexe){ const el = document.querySelector(`input[name=sexe][value=${data.sexe}]`); if (el) el.checked = true; }
-    set('activite', data.activite); set('objectif', data.deficit);
-    set('nbRepas', data.nbRepas); set('styleMenu', data.styleMenu); set('exclusions', data.exclusions);
-    set('servings', data.servings); set('batchMode', data.batchMode); set('nutriMin', data.nutriMin);
-    if (Array.isArray(data.tags)){
-      document.querySelectorAll('input[data-tag]').forEach(cb => { cb.checked = data.tags.includes(cb.dataset.tag); });
-      updateTagsStatus();
-    }
-    if (Array.isArray(data.fridge)) fridgeItems = data.fridge.slice();
-    if (data.fridgeMode) $('fridgeMode').value = data.fridgeMode;
-    if (data.recentMeals) recentHistory[key] = data.recentMeals;
-    if (Array.isArray(data.nutriHistory)) { nutriHistory = data.nutriHistory.slice(); renderHistory(); }
-    let added = 0;
-    if (Array.isArray(data.customRecipes)){
-      data.customRecipes.forEach(r => {
-        if (r && r.cat && RECIPES[r.cat] && !RECIPES[r.cat].some(e => e.name === r.name)){
-          RECIPES[r.cat].push({ ...r, p: r.p||0, c: r.c||0, f: r.f||0, ingredients: r.ingredients||[], steps: r.steps||[] });
-          added++;
-        }
-      });
-    }
-    $('btnClearFridge').click();
-    fridgeItems = data.fridge ? data.fridge.slice() : [];
-    const chips = $('fridgeChips');
-    chips.innerHTML = fridgeItems.map((item, i) => `<span class="fridge-chip">${item}<button type="button" data-fridge-remove="${i}">&times;</button></span>`).join('');
-    $('fridgeSummary').textContent = fridgeItems.length ? `${fridgeItems.length} ingrédient(s) dans le frigo.` : 'Aucun.';
-    updateFridgeStatus();
-    status.textContent = "Profil chargé ✓" + (added ? ` (+${added} recettes)` : "") + ` — recalcule.`;
-  } catch(err){ status.textContent = "Erreur : " + err.message; }
-});
-$('btnSave').addEventListener('click', async function(){
-  const status = $('saveStatus');
-  if (!db || !firebaseOk){ status.textContent = "⚠️ Firebase indisponible — non enregistré."; return; }
-  const key = currentProfileKey();
-  if (!window._profile){ status.textContent = "Calcule d'abord ton objectif."; return; }
-  try {
-    await db.collection('profils').doc(key).set({
-      ...window._profile,
-      tags: currentTags(),
-      fridge: fridgeItems.slice(),
-      fridgeMode: currentFridgeMode(),
-      nutriMin: currentNutriMin(),
-      recentMeals: recentHistory[key] || [],
-      nutriHistory: nutriHistory.slice(-26),
-      updatedAt: new Date().toISOString()
-    }, { merge: true });
-    status.textContent = "Profil enregistré ✓";
-  } catch(err){
-    status.textContent = "Erreur : " + err.message + " (vérifie les règles Firestore)";
+
+  let data = null;
+  // 1) Firebase
+  if (db && firebaseOk){
+    try {
+      const snap = await db.collection('profils').doc(key).get();
+      if (snap.exists) data = snap.data();
+    } catch(err){ console.warn("Firebase read échoué, essai localStorage :", err.message); }
   }
+  // 2) Fallback localStorage
+  if (!data) data = LocalBackend.read('profil_' + key);
+  if (!data){ status.textContent = `Aucun profil trouvé pour "${$('prenom').value.trim()}".`; return; }
+
+  const set = (id, v) => { if (v !== undefined && v !== null) $(id).value = v; };
+  set('poids', data.poids); set('taille', data.taille); set('age', data.age);
+  if (data.sexe){ const el = document.querySelector(`input[name=sexe][value=${data.sexe}]`); if (el) el.checked = true; }
+  set('activite', data.activite); set('objectif', data.deficit);
+  set('nbRepas', data.nbRepas); set('styleMenu', data.styleMenu); set('exclusions', data.exclusions);
+  set('servings', data.servings); set('batchMode', data.batchMode); set('nutriMin', data.nutriMin);
+  if (Array.isArray(data.tags)){
+    document.querySelectorAll('input[data-tag]').forEach(cb => { cb.checked = data.tags.includes(cb.dataset.tag); });
+    updateTagsStatus();
+  }
+  if (Array.isArray(data.fridge)){
+    fridgeItems = data.fridge.slice();
+    const chips = $('fridgeChips');
+    if (chips) chips.innerHTML = fridgeItems.map((item, i) => `<span class="fridge-chip">${item}<button type="button" data-fridge-remove="${i}">&times;</button></span>`).join('');
+    const sum = $('fridgeSummary');
+    if (sum) sum.textContent = fridgeItems.length ? `${fridgeItems.length} ingrédient(s) dans le frigo.` : 'Aucun.';
+    updateFridgeStatus();
+  }
+  if (data.fridgeMode) $('fridgeMode').value = data.fridgeMode;
+  if (data.recentMeals) recentHistory[key] = data.recentMeals;
+  if (Array.isArray(data.nutriHistory)){ nutriHistory = data.nutriHistory.slice(); renderHistory(); }
+
+  let added = 0;
+  if (Array.isArray(data.customRecipes)){
+    data.customRecipes.forEach(r => {
+      if (r && r.cat && RECIPES[r.cat] && !RECIPES[r.cat].some(e => e.name === r.name)){
+        RECIPES[r.cat].push({ ...r, p: r.p||0, c: r.c||0, f: r.f||0, ingredients: r.ingredients||[], steps: r.steps||[], _custom: true });
+        added++;
+      }
+    });
+  }
+
+  status.textContent = "Profil chargé ✓" + (added ? ` (+${added} recettes)` : "") + ` — recalcule.`;
+  status.className = "status ok";
 });
+
 $('addRecipeForm').addEventListener('submit', async function(e){
   e.preventDefault();
   const status = $('addRecipeStatus');
@@ -2218,7 +2303,7 @@ $('addRecipeForm').addEventListener('submit', async function(e){
     cost: parseFloat($('rCost').value), time: parseFloat($('rTime').value),
     p: parseFloat($('rP').value) || 0, c: parseFloat($('rC').value) || 0, f: parseFloat($('rF').value) || 0,
     desc: $('rDesc').value.trim() || "Recette ajoutée.", veg: $('rVeg').checked,
-    ingredients, steps, cat
+    ingredients, steps, cat, _custom: true
   };
   if (!recipe.name || !recipe.kcal || !recipe.cost || !recipe.time){ status.textContent = "Champs manquants."; return; }
   if (RECIPES[cat].some(r => r.name === recipe.name)){ status.textContent = "Nom déjà utilisé."; return; }
@@ -2230,9 +2315,11 @@ $('addRecipeForm').addEventListener('submit', async function(e){
   if (db && firebaseOk && key !== 'anonyme'){
     try {
       await db.collection('profils').doc(key).set({ customRecipes: firebase.firestore.FieldValue.arrayUnion(recipe) }, { merge: true });
-      status.textContent = `"${recipe.name}" ajoutée ✓`;
-    } catch(err){ status.textContent = `"${recipe.name}" en session (${err.message}).`; }
-  } else { status.textContent = `"${recipe.name}" ajoutée en session.`; }
+      status.textContent = `"${recipe.name}" ajoutée ✓ (cloud)`;
+      return;
+    } catch(err){ console.warn("Firebase addRecipe échoué, on garde en session:", err.message); }
+  }
+  status.textContent = `"${recipe.name}" ajoutée en session (sauvegarde au prochain clic Enregistrer).`;
 });
 $('offSearch').addEventListener('click', () => {
   const q = $('offQuery').value.trim();
@@ -2241,7 +2328,7 @@ $('offSearch').addEventListener('click', () => {
 });
 $('offQuery').addEventListener('keydown', (e) => { if (e.key === 'Enter'){ e.preventDefault(); $('offSearch').click(); } });
 
-// Semaine 80 € (condensée)
+// Semaine 80 €
 const WEEK_2P_80 = [
  {day:"Lundi", meals:[
   {type:"Petit-déjeuner",name:"Porridge pomme-cannelle",kcal:315,ingredients:["80 g flocons d'avoine","400 ml lait","2 pommes","cannelle"],steps:["Cuire."]},
