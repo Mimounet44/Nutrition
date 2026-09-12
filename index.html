@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Mon Menu du Jour — v11</title>
+<title>Mon Menu du Jour</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍽️</text></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
@@ -47,168 +47,225 @@
   *{box-sizing:border-box;}
   body{margin:0;background:var(--paper);color:var(--ink);font-family:'IBM Plex Sans',sans-serif;line-height:1.55;}
   h1,h2,h3,h4{font-family:'Source Serif 4',serif;font-weight:600;margin:0 0 .3em 0;color:var(--ink);}
-  .wrap{max-width:840px;margin:0 auto;padding:2.5rem 1.5rem 5rem;}
-  header.top{border-bottom:2px solid var(--ink);padding-bottom:1.2rem;margin-bottom:2rem;}
-  header.top h1{font-size:2.1rem;letter-spacing:-0.01em;}
-  header.top p{color:var(--ink-soft);margin:.4rem 0 0;max-width:52ch;}
-  .card{background:var(--white);border:1px solid var(--line);padding:1.6rem 1.7rem;margin-bottom:1.5rem;}
-  .card h2{font-size:1.25rem;border-bottom:1px solid var(--line);padding-bottom:.6rem;margin-bottom:1.1rem;display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap;}
+  .wrap{max-width:880px;margin:0 auto;padding:1.2rem 1.5rem 4rem;}
+
+  /* Barre sticky header + onglets */
+  .topbar{
+    position:sticky;top:0;z-index:30;background:var(--paper);
+    border-bottom:2px solid var(--ink);
+    padding:.6rem 0 .4rem;
+    margin-bottom:1.2rem;
+  }
+  .topbar-inner{max-width:880px;margin:0 auto;padding:0 1.5rem;}
+  .topbar .brand{
+    display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap;
+  }
+  .topbar .brand h1{font-size:1.4rem;margin:0;letter-spacing:-.01em;}
+  .topbar .brand .meta{font-size:.72rem;color:var(--ink-soft);}
+  .tabs{display:flex;gap:.3rem;margin-top:.55rem;overflow-x:auto;flex-wrap:nowrap;-webkit-overflow-scrolling:touch;padding-bottom:.15rem;}
+  .tabs::-webkit-scrollbar{height:5px;}
+  .tabs::-webkit-scrollbar-thumb{background:var(--line);border-radius:3px;}
+  .tab{
+    background:transparent;border:1px solid var(--line);color:var(--ink-soft);
+    padding:.42rem .85rem;font-size:.85rem;cursor:pointer;white-space:nowrap;
+    border-radius:20px;transition:all .15s;font-family:inherit;font-weight:500;
+  }
+  .tab:hover{border-color:var(--ink);color:var(--ink);}
+  .tab.active{background:var(--ink);color:var(--white);border-color:var(--ink);}
+  .tab .badge-count{
+    display:inline-block;background:var(--tomato);color:#fff;font-size:.65rem;
+    padding:0 .35rem;border-radius:8px;margin-left:.3rem;line-height:1.3;
+  }
+
+  /* Panneaux */
+  .panel{display:none;animation:fadeIn .2s ease;}
+  .panel.active{display:block;}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+
+  .card{background:var(--white);border:1px solid var(--line);padding:1.4rem 1.5rem;margin-bottom:1.2rem;}
+  .card h2{font-size:1.15rem;border-bottom:1px solid var(--line);padding-bottom:.5rem;margin-bottom:.9rem;display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap;}
   label{display:block;font-size:.85rem;color:var(--ink-soft);margin-bottom:.3rem;}
-  .field{margin-bottom:1rem;}
-  .row{display:flex;gap:1rem;}
+  .field{margin-bottom:.85rem;}
+  .row{display:flex;gap:.9rem;}
   .row .field{flex:1;}
-  input[type=number], input[type=text], select, textarea{width:100%;padding:.55rem .6rem;border:1px solid var(--line);background:var(--paper);font-family:inherit;font-size:.95rem;color:var(--ink);}
+  input[type=number], input[type=text], select, textarea{width:100%;padding:.5rem .6rem;border:1px solid var(--line);background:var(--paper);font-family:inherit;font-size:.95rem;color:var(--ink);}
   input:focus, select:focus, textarea:focus{outline:2px solid var(--sage);outline-offset:1px;}
-  fieldset{border:none;padding:0;margin:0 0 1rem;}
+  fieldset{border:none;padding:0;margin:0 0 .85rem;}
   fieldset legend{font-size:.85rem;color:var(--ink-soft);padding:0;margin-bottom:.4rem;}
-  .radio-group{display:flex;gap:1.4rem;flex-wrap:wrap;}
+  .radio-group{display:flex;gap:1.2rem;flex-wrap:wrap;}
   .radio-group label{display:flex;align-items:center;gap:.4rem;color:var(--ink);font-size:.95rem;margin:0;}
-  button{background:var(--ink);color:var(--white);border:none;padding:.75rem 1.4rem;font-family:inherit;font-size:.95rem;font-weight:500;cursor:pointer;transition:background .15s;}
+  button{background:var(--ink);color:var(--white);border:none;padding:.65rem 1.2rem;font-family:inherit;font-size:.95rem;font-weight:500;cursor:pointer;transition:background .15s;}
   button:hover{background:var(--sage);}
-  button.ghost{background:transparent;color:var(--ink);border:1px solid var(--ink);padding:.5rem 1rem;font-size:.85rem;}
+  button.ghost{background:transparent;color:var(--ink);border:1px solid var(--ink);padding:.42rem .85rem;font-size:.85rem;}
   button.ghost:hover{background:var(--ink);color:var(--white);}
-  button.small{font-size:.72rem;padding:.32rem .65rem;}
+  button.small{font-size:.72rem;padding:.3rem .6rem;}
   button.gold{background:var(--gold);}
   button.gold:hover{background:#9A6F09;}
   button.danger{background:var(--tomato);}
   button.danger:hover{background:#8B3A22;}
   .hidden{display:none;}
-  .result-grid{display:flex;gap:1.5rem;flex-wrap:wrap;margin-bottom:.5rem;}
-  .stat{flex:1;min-width:140px;}
-  .stat .num{font-family:'Source Serif 4',serif;font-size:2rem;font-weight:700;color:var(--tomato);}
-  .stat .label{font-size:.8rem;color:var(--ink-soft);}
-  .meal{border-top:1px solid var(--line);padding:1rem 0;}
+  .result-grid{display:flex;gap:1.2rem;flex-wrap:wrap;margin-bottom:.5rem;}
+  .stat{flex:1;min-width:130px;}
+  .stat .num{font-family:'Source Serif 4',serif;font-size:1.8rem;font-weight:700;color:var(--tomato);}
+  .stat .label{font-size:.78rem;color:var(--ink-soft);}
+  .meal{border-top:1px solid var(--line);padding:.85rem 0;}
   .meal:first-of-type{border-top:none;padding-top:0;}
   .meal-head{display:flex;justify-content:space-between;align-items:baseline;gap:1rem;flex-wrap:wrap;}
-  .meal-head .meal-type{font-size:.75rem;text-transform:uppercase;letter-spacing:.06em;color:var(--sage);font-weight:600;}
-  .meal-head .meal-name{font-family:'Source Serif 4',serif;font-size:1.15rem;margin:.1rem 0;}
-  .meal-meta{font-size:.85rem;color:var(--ink-soft);white-space:nowrap;}
-  .meal-desc{font-size:.9rem;color:var(--ink-soft);margin-top:.2rem;}
-  .meal-actions{display:flex;gap:.5rem;margin-top:.55rem;flex-wrap:wrap;}
-  .macro-bar{display:flex;height:6px;border-radius:3px;overflow:hidden;margin-top:.5rem;max-width:260px;}
+  .meal-head .meal-type{font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;color:var(--sage);font-weight:600;}
+  .meal-head .meal-name{font-family:'Source Serif 4',serif;font-size:1.08rem;margin:.1rem 0;}
+  .meal-meta{font-size:.82rem;color:var(--ink-soft);white-space:nowrap;}
+  .meal-desc{font-size:.88rem;color:var(--ink-soft);margin-top:.15rem;}
+  .meal-actions{display:flex;gap:.4rem;margin-top:.5rem;flex-wrap:wrap;}
+  .macro-bar{display:flex;height:5px;border-radius:3px;overflow:hidden;margin-top:.4rem;max-width:240px;}
   .macro-bar span{display:block;height:100%;}
   .macro-bar .p{background:var(--protein);}
   .macro-bar .c{background:var(--carb);}
   .macro-bar .f{background:var(--fat);}
-  .macro-legend{font-size:.72rem;color:var(--ink-soft);margin-top:.25rem;}
-  .day-total{display:flex;justify-content:space-between;align-items:center;border-top:2px solid var(--ink);margin-top:.5rem;padding-top:.8rem;font-family:'Source Serif 4',serif;font-size:1.05rem;flex-wrap:wrap;gap:.5rem;}
-  .actions{display:flex;gap:.7rem;margin-top:1.2rem;flex-wrap:wrap;}
-  .note{font-size:.8rem;color:var(--ink-soft);margin-top:1.5rem;border-top:1px dashed var(--line);padding-top:1rem;}
-  .status{font-size:.8rem;color:var(--ink-soft);margin-top:.6rem;}
+  .macro-legend{font-size:.7rem;color:var(--ink-soft);margin-top:.2rem;}
+  .day-total{display:flex;justify-content:space-between;align-items:center;border-top:2px solid var(--ink);margin-top:.4rem;padding-top:.7rem;font-family:'Source Serif 4',serif;font-size:1rem;flex-wrap:wrap;gap:.5rem;}
+  .actions{display:flex;gap:.55rem;margin-top:1rem;flex-wrap:wrap;}
+  .note{font-size:.78rem;color:var(--ink-soft);margin-top:1.2rem;border-top:1px dashed var(--line);padding-top:.9rem;}
+  .status{font-size:.8rem;color:var(--ink-soft);margin-top:.5rem;}
   .status.ok{color:var(--sage);}
   .status.warn{color:var(--mustard);}
-  .week-day{border-top:2px solid var(--ink);padding-top:.35rem;margin-top:1.3rem;}
+  .week-day{border-top:2px solid var(--ink);padding-top:.3rem;margin-top:1.1rem;}
   .week-day:first-child{border-top:none;margin-top:0;}
-  .week-day h3{margin:.8rem 0 .2rem;font-size:1.15rem;}
-  .week-day .day-summary{font-size:.8rem;color:var(--ink-soft);margin-bottom:.4rem;}
-  #exclusions{width:100%;padding:.55rem .6rem;border:1px solid var(--line);background:var(--paper);font-family:inherit;font-size:.95rem;color:var(--ink);}
+  .week-day h3{margin:.7rem 0 .2rem;font-size:1.1rem;}
+  .week-day .day-summary{font-size:.78rem;color:var(--ink-soft);margin-bottom:.3rem;}
   @media(max-width:600px){.row{flex-direction:column;gap:0}.actions{flex-wrap:wrap}.actions button{width:100%;}}
 
-  .badge{display:inline-block;font-size:.68rem;text-transform:uppercase;letter-spacing:.05em;padding:.15rem .5rem;border-radius:2px;background:var(--paper);border:1px solid var(--line);color:var(--ink-soft);margin-left:.4rem;}
+  .badge{display:inline-block;font-size:.66rem;text-transform:uppercase;letter-spacing:.05em;padding:.12rem .45rem;border-radius:2px;background:var(--paper);border:1px solid var(--line);color:var(--ink-soft);margin-left:.35rem;}
   .badge.veg{background:#EAF0E2;border-color:#B9C9A6;color:var(--sage);}
   .badge.season{background:#FCF2DC;border-color:#E8D192;color:var(--mustard);}
   .badge.tag{background:#F1E7F4;border-color:#D9C2E0;color:#7A5088;}
   .badge.fridge{background:#E3F2EC;border-color:#A5CFBE;color:#2E7A5C;}
   .badge.improved{background:#FCF2DC;border-color:var(--gold);color:var(--gold);}
+  .badge.version{background:#E8EEF5;border-color:#A9BFD6;color:#3E5C7A;font-weight:600;}
 
-  .nutri{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:3px;color:#fff;font-weight:700;font-size:.85rem;font-family:'Source Serif 4',serif;margin-left:.4rem;box-shadow:0 1px 2px rgba(0,0,0,.15);}
+  .nutri{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:3px;color:#fff;font-weight:700;font-size:.78rem;font-family:'Source Serif 4',serif;margin-left:.35rem;box-shadow:0 1px 2px rgba(0,0,0,.15);}
   .nutri-A{background:var(--ns-a);}
   .nutri-B{background:var(--ns-b);}
   .nutri-C{background:var(--ns-c);color:#333;}
   .nutri-D{background:var(--ns-d);}
   .nutri-E{background:var(--ns-e);}
-  .nutri-large{width:34px;height:34px;font-size:1.1rem;}
-  .nutri-note{font-size:.78rem;color:var(--ink-soft);margin-top:.3rem;font-style:italic;}
-  .nutri-global{display:flex;align-items:center;gap:.6rem;margin-top:.6rem;padding:.6rem .8rem;background:var(--paper);border-left:3px solid var(--sage);}
-  .nutri-global .num{font-family:'Source Serif 4',serif;font-size:1.2rem;font-weight:700;}
-  .meal.ns-A{border-left:3px solid var(--ns-a);padding-left:.7rem;}
-  .meal.ns-B{border-left:3px solid var(--ns-b);padding-left:.7rem;}
-  .meal.ns-C{border-left:3px solid var(--ns-c);padding-left:.7rem;}
-  .meal.ns-D{border-left:3px solid var(--ns-d);padding-left:.7rem;}
-  .meal.ns-E{border-left:3px solid var(--ns-e);padding-left:.7rem;}
+  .nutri-large{width:30px;height:30px;font-size:1rem;}
+  .nutri-note{font-size:.74rem;color:var(--ink-soft);margin-top:.25rem;font-style:italic;}
+  .nutri-global{display:flex;align-items:center;gap:.55rem;margin-top:.5rem;padding:.55rem .75rem;background:var(--paper);border-left:3px solid var(--sage);}
+  .nutri-global .num{font-family:'Source Serif 4',serif;font-size:1.1rem;font-weight:700;}
+  .meal.ns-A{border-left:3px solid var(--ns-a);padding-left:.6rem;}
+  .meal.ns-B{border-left:3px solid var(--ns-b);padding-left:.6rem;}
+  .meal.ns-C{border-left:3px solid var(--ns-c);padding-left:.6rem;}
+  .meal.ns-D{border-left:3px solid var(--ns-d);padding-left:.6rem;}
+  .meal.ns-E{border-left:3px solid var(--ns-e);padding-left:.6rem;}
 
-  .improve-box{padding:.8rem 1rem;background:linear-gradient(135deg,#FFF9E8,#FCF2DC);border:1px solid var(--gold);margin-top:1rem;}
+  .improve-box{padding:.7rem .9rem;background:linear-gradient(135deg,#FFF9E8,#FCF2DC);border:1px solid var(--gold);margin-top:.8rem;}
   .improve-box h4{margin:.1rem 0 .5rem;color:var(--gold);}
-  .improve-preview{background:var(--paper);border:1px solid var(--line);padding:.8rem;margin-top:.6rem;}
-  .improve-preview .row-line{display:flex;justify-content:space-between;gap:.8rem;padding:.35rem 0;border-bottom:1px dashed var(--line);font-size:.9rem;align-items:center;}
+  .improve-preview{background:var(--paper);border:1px solid var(--line);padding:.7rem;margin-top:.5rem;}
+  .improve-preview .row-line{display:flex;justify-content:space-between;gap:.7rem;padding:.3rem 0;border-bottom:1px dashed var(--line);font-size:.88rem;align-items:center;flex-wrap:wrap;}
   .improve-preview .row-line:last-child{border-bottom:none;}
-  .improve-preview .change{font-size:.8rem;color:var(--ink-soft);}
-  .improve-preview .arrow{margin:0 .4rem;color:var(--gold);font-weight:700;}
+  .improve-preview .change{font-size:.78rem;color:var(--ink-soft);}
+  .improve-preview .arrow{margin:0 .35rem;color:var(--gold);font-weight:700;}
   .improve-preview .gain{color:var(--sage);font-weight:600;}
 
-  .hist-chart{width:100%;height:200px;background:var(--paper);border:1px solid var(--line);margin-top:.6rem;}
-  .hist-stats{display:flex;gap:1rem;flex-wrap:wrap;margin-top:.8rem;}
-  .hist-stat{flex:1;min-width:120px;padding:.6rem .8rem;background:var(--paper);border-left:3px solid var(--sage);}
-  .hist-stat .num{font-family:'Source Serif 4',serif;font-size:1.3rem;font-weight:700;}
-  .hist-stat .label{font-size:.75rem;color:var(--ink-soft);}
-  .hist-empty{font-size:.85rem;color:var(--ink-soft);text-align:center;padding:1.5rem;}
+  .hist-chart{width:100%;height:170px;background:var(--paper);border:1px solid var(--line);margin-top:.5rem;}
+  .hist-stats{display:flex;gap:.8rem;flex-wrap:wrap;margin-top:.7rem;}
+  .hist-stat{flex:1;min-width:110px;padding:.55rem .75rem;background:var(--paper);border-left:3px solid var(--sage);}
+  .hist-stat .num{font-family:'Source Serif 4',serif;font-size:1.2rem;font-weight:700;}
+  .hist-stat .label{font-size:.72rem;color:var(--ink-soft);}
+  .hist-empty{font-size:.85rem;color:var(--ink-soft);text-align:center;padding:1.2rem;}
 
-  .suggestion{padding:.6rem .8rem;background:var(--paper);border-left:3px solid var(--mustard);margin-bottom:.5rem;font-size:.9rem;}
+  .suggestion{padding:.55rem .75rem;background:var(--paper);border-left:3px solid var(--mustard);margin-bottom:.45rem;font-size:.88rem;}
   .suggestion .impact{font-weight:600;color:var(--sage);}
   .suggestion .arrow{color:var(--mustard);font-weight:700;margin:0 .3rem;}
   .suggestion.empty{border-left-color:var(--sage);color:var(--sage);}
 
-  .print-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:1rem;margin-top:1rem;}
+  .print-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:.9rem;margin-top:.8rem;}
   .print-card{background:var(--paper);border:1px solid var(--line);overflow:hidden;}
-  .print-card .photo{width:100%;height:140px;object-fit:cover;display:block;}
-  .print-card .body{padding:.8rem;}
-  .print-card .cat{font-size:.7rem;text-transform:uppercase;color:var(--sage);letter-spacing:.05em;font-weight:600;}
-  .print-card .name{font-family:'Source Serif 4',serif;font-size:1rem;margin:.2rem 0;}
-  .print-card .meta{font-size:.75rem;color:var(--ink-soft);}
+  .print-card .photo{width:100%;height:120px;object-fit:cover;display:block;}
+  .print-card .body{padding:.7rem;}
+  .print-card .cat{font-size:.68rem;text-transform:uppercase;color:var(--sage);letter-spacing:.05em;font-weight:600;}
+  .print-card .name{font-family:'Source Serif 4',serif;font-size:.95rem;margin:.15rem 0;}
+  .print-card .meta{font-size:.72rem;color:var(--ink-soft);}
   @media(max-width:600px){.print-grid{grid-template-columns:1fr;}}
 
   .modal-overlay{position:fixed;inset:0;background:rgba(43,38,32,.55);display:flex;align-items:center;justify-content:center;padding:1.2rem;z-index:50;}
   .modal-content{background:var(--white);max-width:600px;width:100%;max-height:85vh;overflow:auto;padding:1.5rem 1.6rem;border:1px solid var(--line);}
   .modal-close{background:transparent;color:var(--ink);border:none;font-size:1.4rem;padding:.2rem .5rem;cursor:pointer;line-height:1;}
 
-  .servings-bar{display:flex;align-items:center;gap:.6rem;font-size:.85rem;color:var(--ink-soft);}
-  .servings-bar input{width:60px;text-align:center;padding:.35rem;}
+  .servings-bar{display:flex;align-items:center;gap:.5rem;font-size:.82rem;color:var(--ink-soft);}
+  .servings-bar input{width:55px;text-align:center;padding:.3rem;}
 
-  .off-results{max-height:280px;overflow:auto;border:1px solid var(--line);margin-top:.5rem;}
-  .off-item{display:flex;gap:.8rem;padding:.6rem;border-bottom:1px solid var(--line);cursor:pointer;align-items:center;}
+  .off-results{max-height:260px;overflow:auto;border:1px solid var(--line);margin-top:.4rem;}
+  .off-item{display:flex;gap:.7rem;padding:.55rem;border-bottom:1px solid var(--line);cursor:pointer;align-items:center;}
   .off-item:last-child{border-bottom:none;}
   .off-item:hover{background:var(--paper);}
-  .off-item img{width:44px;height:44px;object-fit:contain;background:var(--paper);}
-  .off-item .off-meta{font-size:.8rem;color:var(--ink-soft);}
-  .off-item .off-name{font-size:.9rem;font-weight:500;color:var(--ink);}
-  .off-loader{font-size:.85rem;color:var(--ink-soft);padding:.6rem;}
+  .off-item img{width:40px;height:40px;object-fit:contain;background:var(--paper);}
+  .off-item .off-meta{font-size:.76rem;color:var(--ink-soft);}
+  .off-item .off-name{font-size:.88rem;font-weight:500;color:var(--ink);}
+  .off-loader{font-size:.85rem;color:var(--ink-soft);padding:.55rem;}
 
-  .tags-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:.5rem .9rem;margin-top:.6rem;}
-  .tag-check{display:flex;align-items:center;gap:.5rem;font-size:.9rem;color:var(--ink);cursor:pointer;padding:.35rem .5rem;border:1px solid transparent;border-radius:3px;}
+  .tags-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:.4rem .8rem;margin-top:.5rem;}
+  .tag-check{display:flex;align-items:center;gap:.45rem;font-size:.88rem;color:var(--ink);cursor:pointer;padding:.3rem .45rem;border:1px solid transparent;border-radius:3px;}
   .tag-check:hover{background:var(--paper);border-color:var(--line);}
   .tag-check input{accent-color:var(--sage);}
 
   .fridge-search{position:relative;margin-bottom:.5rem;}
-  .fridge-search input{width:100%;padding:.55rem .6rem;}
-  .fridge-suggest{position:absolute;top:100%;left:0;right:0;background:var(--white);border:1px solid var(--line);border-top:none;max-height:260px;overflow:auto;z-index:20;box-shadow:0 6px 14px rgba(0,0,0,.08);}
+  .fridge-search input{width:100%;padding:.5rem .6rem;}
+  .fridge-suggest{position:absolute;top:100%;left:0;right:0;background:var(--white);border:1px solid var(--line);border-top:none;max-height:240px;overflow:auto;z-index:20;box-shadow:0 6px 14px rgba(0,0,0,.08);}
   .fridge-suggest.hidden{display:none;}
-  .fridge-suggest-item{padding:.5rem .7rem;cursor:pointer;font-size:.9rem;display:flex;justify-content:space-between;align-items:center;gap:.6rem;border-bottom:1px solid var(--line);}
+  .fridge-suggest-item{padding:.45rem .65rem;cursor:pointer;font-size:.88rem;display:flex;justify-content:space-between;align-items:center;gap:.5rem;border-bottom:1px solid var(--line);}
   .fridge-suggest-item:last-child{border-bottom:none;}
   .fridge-suggest-item:hover{background:var(--paper);}
-  .fridge-suggest-item .cat{font-size:.7rem;text-transform:uppercase;color:var(--ink-soft);}
+  .fridge-suggest-item .cat{font-size:.68rem;text-transform:uppercase;color:var(--ink-soft);}
   .fridge-suggest-item .highlight{background:var(--mustard);color:#fff;border-radius:2px;padding:0 2px;}
-  .fridge-cats{display:flex;gap:.35rem;flex-wrap:wrap;margin-bottom:.6rem;}
-  .fridge-cat{background:var(--paper);border:1px solid var(--line);padding:.25rem .6rem;font-size:.78rem;cursor:pointer;border-radius:3px;color:var(--ink-soft);}
+  .fridge-cats{display:flex;gap:.3rem;flex-wrap:wrap;margin-bottom:.5rem;}
+  .fridge-cat{background:var(--paper);border:1px solid var(--line);padding:.22rem .55rem;font-size:.75rem;cursor:pointer;border-radius:3px;color:var(--ink-soft);}
   .fridge-cat:hover{border-color:var(--ink);color:var(--ink);}
   .fridge-cat.active{background:var(--ink);color:var(--white);border-color:var(--ink);}
-  .fridge-chips{display:flex;flex-wrap:wrap;gap:.4rem;margin:.5rem 0 .8rem;min-height:28px;}
-  .fridge-chip{display:inline-flex;align-items:center;gap:.4rem;background:var(--paper);border:1px solid var(--line);padding:.25rem .55rem;font-size:.85rem;border-radius:3px;}
-  .fridge-chip button{background:none;border:none;color:var(--ink-soft);cursor:pointer;font-size:1rem;padding:0 0 0 .2rem;}
+  .fridge-chips{display:flex;flex-wrap:wrap;gap:.35rem;margin:.4rem 0 .7rem;min-height:26px;}
+  .fridge-chip{display:inline-flex;align-items:center;gap:.35rem;background:var(--paper);border:1px solid var(--line);padding:.22rem .5rem;font-size:.82rem;border-radius:3px;}
+  .fridge-chip button{background:none;border:none;color:var(--ink-soft);cursor:pointer;font-size:.95rem;padding:0 0 0 .15rem;}
   .fridge-chip button:hover{color:var(--tomato);background:none;}
-  .fridge-summary{font-size:.85rem;color:var(--ink-soft);margin-top:.3rem;padding:.5rem .7rem;background:var(--paper);border-left:3px solid var(--sage);}
-  .fridge-status{margin-top:.6rem;font-size:.85rem;}
+  .fridge-summary{font-size:.82rem;color:var(--ink-soft);margin-top:.25rem;padding:.45rem .65rem;background:var(--paper);border-left:3px solid var(--sage);}
+  .fridge-status{margin-top:.5rem;font-size:.82rem;}
   .fridge-status .ok{color:var(--sage);}
   .fridge-status .partial{color:var(--mustard);}
   .fridge-status .ko{color:var(--tomato);}
-  .fridge-quick{display:flex;gap:.35rem;flex-wrap:wrap;margin:.3rem 0;}
-  .fridge-quick span{background:var(--paper);border:1px dashed var(--line);padding:.2rem .5rem;font-size:.75rem;cursor:pointer;border-radius:2px;color:var(--ink-soft);}
+  .fridge-quick{display:flex;gap:.3rem;flex-wrap:wrap;margin:.25rem 0;}
+  .fridge-quick span{background:var(--paper);border:1px dashed var(--line);padding:.18rem .45rem;font-size:.72rem;cursor:pointer;border-radius:2px;color:var(--ink-soft);}
   .fridge-quick span:hover{border-color:var(--sage);color:var(--sage);}
+
+  .budget-total{display:flex;justify-content:space-between;border-top:2px solid var(--ink);padding-top:.6rem;margin-top:.7rem;font-family:'Source Serif 4',serif;}
+  .shopping{columns:2;column-gap:1.8rem;}
+  .shopping div{break-inside:avoid;padding:.12rem 0;}
+  @media(max-width:600px){.shopping{columns:1;}}
+  .recipe-box{background:var(--paper);border:1px solid var(--line);padding:.9rem;margin:.6rem 0 .9rem;}
+  .recipe-box h4{font-family:'Source Serif 4',serif;margin:.1rem 0 .45rem;font-size:1rem;}
+  .recipe-box ul{margin:.35rem 0 .6rem;padding-left:1.1rem;}
+  .recipe-box ol{margin:.35rem 0;padding-left:1.1rem;}
+
+  /* Footer / pied de page */
+  footer.bottom{
+    max-width:880px;margin:1.5rem auto 0;padding:1rem 1.5rem;
+    border-top:1px dashed var(--line);
+    font-size:.78rem;color:var(--ink-soft);
+    display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap;
+  }
+
+  /* Migration banner */
+  .migration-banner{
+    background:#FCF2DC;border:1px solid var(--mustard);
+    padding:.7rem .9rem;margin-bottom:1rem;font-size:.85rem;
+    border-left:4px solid var(--mustard);
+  }
+  .migration-banner button{background:transparent;color:var(--mustard);border:1px solid var(--mustard);padding:.2rem .55rem;font-size:.75rem;margin-left:.5rem;}
 
   @media print{
     body{background:#fff;}
     .no-print{display:none !important;}
-    .card{border:none;padding:0;margin-bottom:2rem;break-inside:avoid;}
-    header.top{border-bottom:2px solid #000;}
+    .topbar{position:static;border-bottom:2px solid #000;padding:.5rem 0;}
+    .tabs{display:none !important;}
+    .card{border:none;padding:0;margin-bottom:1.5rem;break-inside:avoid;}
     .meal{break-inside:avoid;}
     .modal-overlay{display:none !important;}
     .print-card{break-inside:avoid;border:1px solid #ccc;}
@@ -220,291 +277,386 @@
 </style>
 </head>
 <body>
+
+<!-- ============================================================
+     BARRE STICKY + ONGLETS
+     ============================================================ -->
+<div class="topbar no-print">
+  <div class="topbar-inner">
+    <div class="brand">
+      <h1>🍽️ Mon Menu du Jour</h1>
+      <div class="meta">
+        <span class="badge version" id="versionBadge">v12.0.0</span>
+        <span id="storageBadge" style="margin-left:.5rem;font-size:.72rem;">💾 Local</span>
+      </div>
+    </div>
+    <div class="tabs" id="tabsBar">
+      <button class="tab active" data-tab="profile">🏠 Profil</button>
+      <button class="tab" data-tab="menu">🍽️ Menu</button>
+      <button class="tab" data-tab="stats">📊 Stats</button>
+      <button class="tab" data-tab="shopping">🛒 Courses</button>
+      <button class="tab" data-tab="recipes">📚 Recettes</button>
+      <button class="tab" data-tab="budget">💰 Budget</button>
+    </div>
+  </div>
+</div>
+
 <div class="wrap">
 
-  <header class="top">
-    <h1>Mon Menu du Jour</h1>
-    <p>Profil, objectif calorique, Nutri-Score, amélioration automatique, semaine optimisée A/B, historique, tags, frigo et menu imprimable.</p>
-  </header>
+  <!-- Bandeau de migration (si activé) -->
+  <div id="migrationBanner" class="migration-banner hidden no-print"></div>
 
-  <section class="card no-print" id="profileCard">
-    <h2>Ton profil</h2>
-    <form id="profileForm">
-      <div class="row">
-        <div class="field" style="flex:2;"><label for="prenom">Prénom</label><input type="text" id="prenom" maxlength="30" required placeholder="ex: Yves"></div>
-        <div class="field" style="flex:1; display:flex; align-items:flex-end;"><button type="button" class="ghost" id="btnLoad" style="width:100%;">Charger</button></div>
-      </div>
-      <div class="row">
-        <div class="field"><label for="poids">Poids (kg)</label><input type="number" id="poids" min="30" max="250" step="0.1" required></div>
-        <div class="field"><label for="taille">Taille (cm)</label><input type="number" id="taille" min="120" max="230" required></div>
-      </div>
-      <div class="row">
-        <div class="field"><label for="age">Âge</label><input type="number" id="age" min="14" max="100" required></div>
-        <div class="field"><fieldset><legend>Sexe</legend><div class="radio-group">
-          <label><input type="radio" name="sexe" value="homme" checked> Homme</label>
-          <label><input type="radio" name="sexe" value="femme"> Femme</label>
-        </div></fieldset></div>
-      </div>
-      <div class="field"><label for="activite">Activité</label>
-        <select id="activite">
-          <option value="1.2">Sédentaire</option>
-          <option value="1.375" selected>Légèrement actif</option>
-          <option value="1.55">Modérément actif</option>
-          <option value="1.725">Très actif</option>
-        </select>
-      </div>
-      <div class="field"><label for="objectif">Perte de poids</label>
-        <select id="objectif">
-          <option value="0">Maintien</option>
-          <option value="250" selected>Doux</option>
-          <option value="500">Modéré</option>
-          <option value="750">Soutenu</option>
-        </select>
-      </div>
-      <div class="row">
-        <div class="field"><label for="nbRepas">Prises</label>
-          <select id="nbRepas">
-            <option value="3">3 repas</option>
-            <option value="4" selected>3 + 1 collation</option>
-            <option value="5">3 + 2 collations</option>
+  <!-- ============================================================
+       ONGLET PROFIL
+       ============================================================ -->
+  <div class="panel active" data-panel="profile">
+
+    <section class="card">
+      <h2>Ton profil</h2>
+      <form id="profileForm">
+        <div class="row">
+          <div class="field" style="flex:2;"><label for="prenom">Prénom</label><input type="text" id="prenom" maxlength="30" required placeholder="ex: Yves"></div>
+          <div class="field" style="flex:1; display:flex; align-items:flex-end;"><button type="button" class="ghost" id="btnLoad" style="width:100%;">Charger</button></div>
+        </div>
+        <div class="row">
+          <div class="field"><label for="poids">Poids (kg)</label><input type="number" id="poids" min="30" max="250" step="0.1" required></div>
+          <div class="field"><label for="taille">Taille (cm)</label><input type="number" id="taille" min="120" max="230" required></div>
+        </div>
+        <div class="row">
+          <div class="field"><label for="age">Âge</label><input type="number" id="age" min="14" max="100" required></div>
+          <div class="field"><fieldset><legend>Sexe</legend><div class="radio-group">
+            <label><input type="radio" name="sexe" value="homme" checked> Homme</label>
+            <label><input type="radio" name="sexe" value="femme"> Femme</label>
+          </div></fieldset></div>
+        </div>
+        <div class="row">
+          <div class="field"><label for="activite">Activité</label>
+            <select id="activite">
+              <option value="1.2">Sédentaire</option>
+              <option value="1.375" selected>Légèrement actif</option>
+              <option value="1.55">Modérément actif</option>
+              <option value="1.725">Très actif</option>
+            </select>
+          </div>
+          <div class="field"><label for="objectif">Perte de poids</label>
+            <select id="objectif">
+              <option value="0">Maintien</option>
+              <option value="250" selected>Doux</option>
+              <option value="500">Modéré</option>
+              <option value="750">Soutenu</option>
+            </select>
+          </div>
+        </div>
+        <div class="row">
+          <div class="field"><label for="nbRepas">Prises</label>
+            <select id="nbRepas">
+              <option value="3">3 repas</option>
+              <option value="4" selected>3 + 1 collation</option>
+              <option value="5">3 + 2 collations</option>
+            </select>
+          </div>
+          <div class="field"><label for="styleMenu">Style du menu</label>
+            <select id="styleMenu">
+              <option value="equilibre" selected>Équilibré</option>
+              <option value="economique">Économique</option>
+              <option value="rapide">Rapide</option>
+              <option value="gourmand">Gourmand</option>
+              <option value="proteine">Riche en protéines</option>
+              <option value="nutriscore">Optimisé Nutri-Score</option>
+              <option value="AB">🅰️🅱️ Optimisé A/B uniquement</option>
+            </select>
+          </div>
+        </div>
+        <div class="row">
+          <div class="field"><label for="nutriMin">Nutri-Score minimum</label>
+            <select id="nutriMin">
+              <option value="E" selected>Tous</option>
+              <option value="D">Au moins D</option>
+              <option value="C">Au moins C</option>
+              <option value="B">Au moins B</option>
+              <option value="A">Uniquement A</option>
+            </select>
+          </div>
+          <div class="field"><label for="servings">Personnes</label><input type="number" id="servings" min="1" max="8" step="1" value="1"></div>
+        </div>
+        <div class="field"><label for="batchMode">Batch cooking</label>
+          <select id="batchMode">
+            <option value="off" selected>Désactivé</option>
+            <option value="on">Activé (2 sessions)</option>
           </select>
         </div>
-        <div class="field"><label for="styleMenu">Style du menu</label>
-          <select id="styleMenu">
-            <option value="equilibre" selected>Équilibré</option>
-            <option value="economique">Économique</option>
-            <option value="rapide">Rapide</option>
-            <option value="gourmand">Gourmand</option>
-            <option value="proteine">Riche en protéines</option>
-            <option value="nutriscore">Optimisé Nutri-Score</option>
-            <option value="AB">🅰️🅱️ Optimisé A/B uniquement</option>
-          </select>
+        <div class="field"><label for="exclusions">Plats à éviter</label>
+          <input type="text" id="exclusions" maxlength="250" placeholder="ex : saumon, champignons">
         </div>
-      </div>
-      <div class="row">
-        <div class="field"><label for="nutriMin">Nutri-Score minimum</label>
-          <select id="nutriMin">
-            <option value="E" selected>Tous</option>
-            <option value="D">Au moins D</option>
-            <option value="C">Au moins C</option>
-            <option value="B">Au moins B</option>
-            <option value="A">Uniquement A</option>
-          </select>
-        </div>
-        <div class="field"><label for="servings">Personnes</label><input type="number" id="servings" min="1" max="8" step="1" value="1"></div>
-      </div>
-      <div class="field"><label for="batchMode">Batch cooking</label>
-        <select id="batchMode">
-          <option value="off" selected>Désactivé</option>
-          <option value="on">Activé (2 sessions)</option>
-        </select>
-      </div>
-      <div class="field"><label for="exclusions">Plats à éviter</label>
-        <input type="text" id="exclusions" maxlength="250" placeholder="ex : saumon, champignons">
-      </div>
-      <button type="submit">Calculer mon objectif</button>
-    </form>
-  </section>
+        <button type="submit">Calculer mon objectif</button>
+      </form>
+    </section>
 
-  <section class="card no-print" id="tagsCard">
-    <h2>🏷️ Tags alimentaires</h2>
-    <fieldset><legend>Régime</legend><div class="tags-grid" id="tagsDiet"></div></fieldset>
-    <fieldset><legend>Allergies / intolérances</legend><div class="tags-grid" id="tagsAllergy"></div></fieldset>
-    <fieldset><legend>Préférences / croyances</legend><div class="tags-grid" id="tagsBelief"></div></fieldset>
-    <fieldset><legend>Autres</legend><div class="tags-grid" id="tagsOther"></div></fieldset>
-    <div class="actions" style="margin-top:.5rem;">
-      <button type="button" class="ghost" id="btnResetTags">Tout décocher</button>
-      <button type="button" class="ghost" id="btnCountCompatible">Voir compatibles</button>
-    </div>
-    <div class="status" id="tagsStatus"></div>
-  </section>
+    <section class="card">
+      <h2>🏷️ Tags alimentaires</h2>
+      <fieldset><legend>Régime</legend><div class="tags-grid" id="tagsDiet"></div></fieldset>
+      <fieldset><legend>Allergies / intolérances</legend><div class="tags-grid" id="tagsAllergy"></div></fieldset>
+      <fieldset><legend>Préférences / croyances</legend><div class="tags-grid" id="tagsBelief"></div></fieldset>
+      <fieldset><legend>Autres</legend><div class="tags-grid" id="tagsOther"></div></fieldset>
+      <div class="actions" style="margin-top:.4rem;">
+        <button type="button" class="ghost" id="btnResetTags">Tout décocher</button>
+        <button type="button" class="ghost" id="btnCountCompatible">Voir compatibles</button>
+      </div>
+      <div class="status" id="tagsStatus"></div>
+    </section>
 
-  <section class="card no-print" id="fridgeCard">
-    <h2>🧊 J'ai déjà ça dans mon frigo</h2>
-    <div class="field">
-      <label for="fridgeInput">Rechercher un ingrédient</label>
-      <div class="fridge-search">
-        <input type="text" id="fridgeInput" placeholder="ex : tom, courg, poul…" autocomplete="off">
-        <div id="fridgeSuggest" class="fridge-suggest hidden"></div>
-      </div>
-      <div class="fridge-quick">
-        <span data-quick="Riz">+ Riz</span>
-        <span data-quick="Pâtes">+ Pâtes</span>
-        <span data-quick="Œufs">+ Œufs</span>
-        <span data-quick="Tomates">+ Tomates</span>
-        <span data-quick="Oignons">+ Oignons</span>
-        <span data-quick="Poulet">+ Poulet</span>
-        <span data-quick="Lait">+ Lait</span>
-        <span data-quick="Carottes">+ Carottes</span>
-      </div>
-    </div>
-    <div class="field">
-      <label>Parcourir par catégorie</label>
-      <div class="fridge-cats" id="fridgeCats"></div>
-      <div id="fridgeCatContent" style="margin-top:.5rem;"></div>
-    </div>
-    <div class="field">
-      <label>Mon frigo</label>
-      <div class="fridge-chips" id="fridgeChips"></div>
-    </div>
-    <div class="row">
+    <section class="card">
+      <h2>🧊 J'ai déjà ça dans mon frigo</h2>
       <div class="field">
-        <label for="fridgeMode">Mode frigo</label>
-        <select id="fridgeMode">
-          <option value="off">Désactivé</option>
-          <option value="priorite" selected>Priorité</option>
-          <option value="strict">Strict (100%)</option>
-          <option value="maxManquant">Tolérant (≤ 2)</option>
-        </select>
-      </div>
-      <div class="field" style="flex:0 0 auto; display:flex; align-items:flex-end;">
-        <button type="button" class="ghost" id="btnClearFridge" style="width:100%;">Vider</button>
-      </div>
-    </div>
-    <div class="fridge-summary" id="fridgeSummary">Aucun ingrédient.</div>
-    <div class="fridge-status" id="fridgeStatus"></div>
-  </section>
-
-  <section class="card hidden" id="resultCard">
-    <h2>Ton objectif quotidien</h2>
-    <div class="result-grid">
-      <div class="stat"><div class="num" id="bmrVal">–</div><div class="label">Métabolisme de base (kcal)</div></div>
-      <div class="stat"><div class="num" id="maintienVal">–</div><div class="label">Besoins à activité égale</div></div>
-      <div class="stat"><div class="num" id="cibleVal">–</div><div class="label">Objectif journalier</div></div>
-    </div>
-    <div class="nutri-global hidden" id="nutriGlobal">
-      <span>Nutri-Score global :</span>
-      <span class="num" id="nutriGlobalNum">–</span>
-      <span id="nutriGlobalBadge"></span>
-    </div>
-  </section>
-
-  <section class="card hidden" id="menuCard">
-    <h2>
-      <span id="menuTitle">Menu proposé</span>
-      <span class="servings-bar no-print" id="servingsBar">
-        <label for="servingsQuick" style="margin:0;">Personnes :</label>
-        <input type="number" id="servingsQuick" min="1" max="8" step="1" value="1">
-      </span>
-    </h2>
-    <div id="menuList"></div>
-    <div class="day-total">
-      <span>Total</span>
-      <span id="dayTotal">–</span>
-    </div>
-    <div class="actions no-print">
-      <button class="ghost" id="btnRegen">Autre menu</button>
-      <button class="ghost" id="btnWeek">7 jours variés</button>
-      <button class="ghost" id="btnWeekAB">🅰️🅱️ Semaine A/B</button>
-      <button class="gold" id="btnImprove">✨ Améliorer automatiquement</button>
-      <button class="ghost" id="btnPrintMenu">📸 Menu imprimable</button>
-      <button class="ghost" id="btnBatch">🍱 Batch</button>
-      <button class="ghost" id="btnShopping">🛒 Courses</button>
-      <button class="ghost" id="btnPDF">📄 PDF</button>
-      <button class="ghost" id="btnPrint">🖨️ Imprimer</button>
-      <button id="btnSave">Enregistrer</button>
-      <button class="danger small" id="btnWipeLocal" title="Vide toutes les données locales">🗑️</button>
-    </div>
-    <div class="status" id="saveStatus"></div>
-  </section>
-
-  <section class="card hidden no-print" id="improveCard">
-    <h2>✨ Amélioration automatique</h2>
-    <p class="meal-desc" style="margin:0 0 1rem;">Analyse ton menu et propose d'appliquer automatiquement les substitutions bénéfiques pour le Nutri-Score.</p>
-    <div id="improveContent"></div>
-  </section>
-
-  <section class="card hidden" id="historyCard">
-    <h2>📈 Historique Nutri-Score (8 semaines)</h2>
-    <div id="historyChartWrap"></div>
-    <div class="hist-stats" id="historyStats"></div>
-  </section>
-
-  <section class="card hidden" id="printMenuCard">
-    <h2>📸 Menu de la semaine imprimable</h2>
-    <div id="printGrid" class="print-grid"></div>
-    <div class="actions no-print" style="margin-top:1rem;">
-      <button class="ghost" id="btnPrintNow">🖨️ Imprimer</button>
-      <button class="ghost" id="btnPrintPDF">📄 Export PDF</button>
-    </div>
-  </section>
-
-  <section class="card hidden" id="shoppingCard">
-    <h2>
-      🛒 Liste de courses
-      <span class="servings-bar no-print" id="shoppingServingsBar">
-        <label for="servingsShopping" style="margin:0;">Personnes :</label>
-        <input type="number" id="servingsShopping" min="1" max="8" step="1" value="1">
-      </span>
-    </h2>
-    <div id="shoppingList" class="shopping"></div>
-  </section>
-
-  <section class="card hidden" id="batchCard">
-    <h2>🍱 Plan batch cooking</h2>
-    <div id="batchContent"></div>
-  </section>
-
-  <section class="card hidden no-print" id="addRecipeCard">
-    <h2>Ajouter une recette perso</h2>
-    <div class="field">
-      <label for="offQuery">🔍 OpenFoodFacts</label>
-      <div class="row">
-        <div class="field" style="flex:3;"><input type="text" id="offQuery"></div>
-        <div class="field" style="flex:1; display:flex;"><button type="button" class="ghost" id="offSearch" style="width:100%;">Chercher</button></div>
-      </div>
-      <div id="offResults" class="off-results hidden"></div>
-    </div>
-    <form id="addRecipeForm">
-      <div class="row">
-        <div class="field" style="flex:2;"><label for="rNom">Nom</label><input type="text" id="rNom" maxlength="80" required></div>
-        <div class="field"><label for="rCategorie">Repas</label>
-          <select id="rCategorie">
-            <option value="petitDej">Petit-déjeuner</option>
-            <option value="dejeunerDiner" selected>Déjeuner / Dîner</option>
-            <option value="collation">Collation</option>
-          </select>
+        <label for="fridgeInput">Rechercher un ingrédient</label>
+        <div class="fridge-search">
+          <input type="text" id="fridgeInput" placeholder="ex : tom, courg, poul…" autocomplete="off">
+          <div id="fridgeSuggest" class="fridge-suggest hidden"></div>
+        </div>
+        <div class="fridge-quick">
+          <span data-quick="Riz">+ Riz</span>
+          <span data-quick="Pâtes">+ Pâtes</span>
+          <span data-quick="Œufs">+ Œufs</span>
+          <span data-quick="Tomates">+ Tomates</span>
+          <span data-quick="Oignons">+ Oignons</span>
+          <span data-quick="Poulet">+ Poulet</span>
+          <span data-quick="Lait">+ Lait</span>
+          <span data-quick="Carottes">+ Carottes</span>
         </div>
       </div>
-      <div class="row">
-        <div class="field"><label for="rKcal">kcal</label><input type="number" id="rKcal" min="20" max="1500" required></div>
-        <div class="field"><label for="rCost">Coût (€)</label><input type="number" id="rCost" min="0" max="20" step="0.1" required></div>
-        <div class="field"><label for="rTime">Temps</label><input type="number" id="rTime" min="1" max="180" required></div>
+      <div class="field">
+        <label>Parcourir par catégorie</label>
+        <div class="fridge-cats" id="fridgeCats"></div>
+        <div id="fridgeCatContent" style="margin-top:.4rem;"></div>
+      </div>
+      <div class="field">
+        <label>Mon frigo</label>
+        <div class="fridge-chips" id="fridgeChips"></div>
       </div>
       <div class="row">
-        <div class="field"><label for="rP">Protéines (g)</label><input type="number" id="rP" min="0" max="200" step="0.1" value="0"></div>
-        <div class="field"><label for="rC">Glucides (g)</label><input type="number" id="rC" min="0" max="300" step="0.1" value="0"></div>
-        <div class="field"><label for="rF">Lipides (g)</label><input type="number" id="rF" min="0" max="200" step="0.1" value="0"></div>
+        <div class="field">
+          <label for="fridgeMode">Mode frigo</label>
+          <select id="fridgeMode">
+            <option value="off">Désactivé</option>
+            <option value="priorite" selected>Priorité</option>
+            <option value="strict">Strict (100%)</option>
+            <option value="maxManquant">Tolérant (≤ 2)</option>
+          </select>
+        </div>
+        <div class="field" style="flex:0 0 auto; display:flex; align-items:flex-end;">
+          <button type="button" class="ghost" id="btnClearFridge" style="width:100%;">Vider</button>
+        </div>
       </div>
-      <div class="field"><label for="rDesc">Description</label><input type="text" id="rDesc" maxlength="140"></div>
-      <div class="field"><label for="rIngredients">Ingrédients (1/ligne)</label><textarea id="rIngredients" rows="3"></textarea></div>
-      <div class="field"><label for="rSteps">Préparation (1/ligne)</label><textarea id="rSteps" rows="3"></textarea></div>
-      <fieldset><div class="radio-group"><label><input type="checkbox" id="rVeg"> Végétarien</label></div></fieldset>
-      <button type="submit">Ajouter</button>
-    </form>
-    <div class="status" id="addRecipeStatus"></div>
-  </section>
+      <div class="fridge-summary" id="fridgeSummary">Aucun ingrédient.</div>
+      <div class="fridge-status" id="fridgeStatus"></div>
+    </section>
 
-  <section class="card no-print" id="weekBudgetCard">
-    <h2>Ma semaine à 2 — budget 80 €</h2>
-    <div class="row">
-      <div class="field"><label for="weekBudget">Budget max (€)</label><input type="number" id="weekBudget" min="30" max="200" step="1" value="80"></div>
-      <div class="field"><label for="weekPeople">Personnes</label><input type="number" id="weekPeople" min="1" max="8" step="1" value="2"></div>
-    </div>
-    <div class="actions" style="margin-top:0;">
-      <button type="button" id="btnBudgetWeek">Générer</button>
-      <button type="button" class="ghost" id="btnBudgetPDF">📄 PDF</button>
-    </div>
-    <div id="budgetWeekResult" class="hidden" style="margin-top:1.2rem;"></div>
-  </section>
+  </div>
 
-  <p class="note">Estimations indicatives. Ne remplace pas un avis médical.</p>
+  <!-- ============================================================
+       ONGLET MENU
+       ============================================================ -->
+  <div class="panel" data-panel="menu">
+
+    <section class="card hidden" id="resultCard">
+      <h2>Ton objectif quotidien</h2>
+      <div class="result-grid">
+        <div class="stat"><div class="num" id="bmrVal">–</div><div class="label">Métabolisme de base (kcal)</div></div>
+        <div class="stat"><div class="num" id="maintienVal">–</div><div class="label">Besoins à activité égale</div></div>
+        <div class="stat"><div class="num" id="cibleVal">–</div><div class="label">Objectif journalier</div></div>
+      </div>
+      <div class="nutri-global hidden" id="nutriGlobal">
+        <span>Nutri-Score global :</span>
+        <span class="num" id="nutriGlobalNum">–</span>
+        <span id="nutriGlobalBadge"></span>
+      </div>
+    </section>
+
+    <section class="card hidden" id="menuCard">
+      <h2>
+        <span id="menuTitle">Menu proposé</span>
+        <span class="servings-bar no-print" id="servingsBar">
+          <label for="servingsQuick" style="margin:0;">Pers. :</label>
+          <input type="number" id="servingsQuick" min="1" max="8" step="1" value="1">
+        </span>
+      </h2>
+      <div id="menuList"></div>
+      <div class="day-total">
+        <span>Total</span>
+        <span id="dayTotal">–</span>
+      </div>
+      <div class="actions no-print">
+        <button class="ghost" id="btnRegen">🔄 Autre menu</button>
+        <button class="ghost" id="btnWeek">📅 7 jours variés</button>
+        <button class="ghost" id="btnWeekAB">🅰️🅱️ Semaine A/B</button>
+        <button class="gold" id="btnImprove">✨ Améliorer</button>
+        <button class="ghost" id="btnPrintMenu">📸 Vue imprimable</button>
+        <button class="ghost" id="btnPDF">📄 PDF</button>
+        <button class="ghost" id="btnPrint">🖨️ Imprimer</button>
+        <button id="btnSave">💾 Enregistrer</button>
+      </div>
+      <div class="status" id="saveStatus"></div>
+    </section>
+
+    <section class="card hidden no-print" id="improveCard">
+      <h2>✨ Amélioration automatique</h2>
+      <p class="meal-desc" style="margin:0 0 .8rem;">Analyse et applique automatiquement les substitutions bénéfiques.</p>
+      <div id="improveContent"></div>
+    </section>
+
+  </div>
+
+  <!-- ============================================================
+       ONGLET STATS
+       ============================================================ -->
+  <div class="panel" data-panel="stats">
+    <section class="card" id="historyCard">
+      <h2>📈 Historique Nutri-Score (8 semaines)</h2>
+      <div id="historyChartWrap"></div>
+      <div class="hist-stats" id="historyStats"></div>
+    </section>
+
+    <section class="card" id="printMenuCard" style="display:none;">
+      <h2>📸 Vue imprimable du menu</h2>
+      <div id="printGrid" class="print-grid"></div>
+      <div class="actions no-print" style="margin-top:.8rem;">
+        <button class="ghost" id="btnPrintNow">🖨️ Imprimer maintenant</button>
+        <button class="ghost" id="btnPrintPDF">📄 Export PDF</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>📊 Résumé d'usage</h2>
+      <div class="hist-stats" id="usageStats"></div>
+      <div class="actions" style="margin-top:.8rem;">
+        <button class="ghost" id="btnExportJSON">📤 Exporter mes données</button>
+        <button class="ghost" id="btnImportJSON">📥 Importer</button>
+        <input type="file" id="importFile" accept=".json" class="hidden">
+        <button class="danger small" id="btnWipeLocal">🗑️ Effacer données locales</button>
+      </div>
+    </section>
+  </div>
+
+  <!-- ============================================================
+       ONGLET COURSES
+       ============================================================ -->
+  <div class="panel" data-panel="shopping">
+    <section class="card hidden" id="shoppingCard">
+      <h2>
+        🛒 Liste de courses
+        <span class="servings-bar no-print" id="shoppingServingsBar">
+          <label for="servingsShopping" style="margin:0;">Pers. :</label>
+          <input type="number" id="servingsShopping" min="1" max="8" step="1" value="1">
+        </span>
+      </h2>
+      <div id="shoppingList" class="shopping"></div>
+    </section>
+
+    <section class="card">
+      <h2>📋 Actions</h2>
+      <p class="meal-desc" style="margin:0 0 .8rem;">Génère la liste de courses à partir du menu actuel, ou crée un plan batch cooking.</p>
+      <div class="actions" style="margin-top:0;">
+        <button id="btnShopping">🛒 Générer liste de courses</button>
+        <button class="ghost" id="btnBatch">🍱 Plan batch cooking</button>
+      </div>
+    </section>
+
+    <section class="card hidden" id="batchCard">
+      <h2>🍱 Plan batch cooking</h2>
+      <div id="batchContent"></div>
+    </section>
+  </div>
+
+  <!-- ============================================================
+       ONGLET RECETTES
+       ============================================================ -->
+  <div class="panel" data-panel="recipes">
+    <section class="card">
+      <h2>Ajouter une recette perso</h2>
+      <div class="field">
+        <label for="offQuery">🔍 Recherche OpenFoodFacts</label>
+        <div class="row">
+          <div class="field" style="flex:3;"><input type="text" id="offQuery" placeholder="ex : yaourt nature"></div>
+          <div class="field" style="flex:1; display:flex;"><button type="button" class="ghost" id="offSearch" style="width:100%;">Chercher</button></div>
+        </div>
+        <div id="offResults" class="off-results hidden"></div>
+      </div>
+      <form id="addRecipeForm">
+        <div class="row">
+          <div class="field" style="flex:2;"><label for="rNom">Nom</label><input type="text" id="rNom" maxlength="80" required></div>
+          <div class="field"><label for="rCategorie">Repas</label>
+            <select id="rCategorie">
+              <option value="petitDej">Petit-déjeuner</option>
+              <option value="dejeunerDiner" selected>Déjeuner / Dîner</option>
+              <option value="collation">Collation</option>
+            </select>
+          </div>
+        </div>
+        <div class="row">
+          <div class="field"><label for="rKcal">kcal</label><input type="number" id="rKcal" min="20" max="1500" required></div>
+          <div class="field"><label for="rCost">Coût (€)</label><input type="number" id="rCost" min="0" max="20" step="0.1" required></div>
+          <div class="field"><label for="rTime">Temps</label><input type="number" id="rTime" min="1" max="180" required></div>
+        </div>
+        <div class="row">
+          <div class="field"><label for="rP">Protéines (g)</label><input type="number" id="rP" min="0" max="200" step="0.1" value="0"></div>
+          <div class="field"><label for="rC">Glucides (g)</label><input type="number" id="rC" min="0" max="300" step="0.1" value="0"></div>
+          <div class="field"><label for="rF">Lipides (g)</label><input type="number" id="rF" min="0" max="200" step="0.1" value="0"></div>
+        </div>
+        <div class="field"><label for="rDesc">Description</label><input type="text" id="rDesc" maxlength="140"></div>
+        <div class="field"><label for="rIngredients">Ingrédients (1/ligne)</label><textarea id="rIngredients" rows="3"></textarea></div>
+        <div class="field"><label for="rSteps">Préparation (1/ligne)</label><textarea id="rSteps" rows="3"></textarea></div>
+        <fieldset><div class="radio-group"><label><input type="checkbox" id="rVeg"> Végétarien</label></div></fieldset>
+        <button type="submit">Ajouter</button>
+      </form>
+      <div class="status" id="addRecipeStatus"></div>
+    </section>
+  </div>
+
+  <!-- ============================================================
+       ONGLET BUDGET
+       ============================================================ -->
+  <div class="panel" data-panel="budget">
+    <section class="card">
+      <h2>💰 Ma semaine à 2 — budget 80 €</h2>
+      <div class="row">
+        <div class="field"><label for="weekBudget">Budget max (€)</label><input type="number" id="weekBudget" min="30" max="200" step="1" value="80"></div>
+        <div class="field"><label for="weekPeople">Personnes</label><input type="number" id="weekPeople" min="1" max="8" step="1" value="2"></div>
+      </div>
+      <div class="actions" style="margin-top:0;">
+        <button type="button" id="btnBudgetWeek">Générer la semaine</button>
+        <button type="button" class="ghost" id="btnBudgetPDF">📄 Export PDF</button>
+      </div>
+      <div id="budgetWeekResult" class="hidden" style="margin-top:1rem;"></div>
+    </section>
+  </div>
+
 </div>
+
+<!-- Pied de page -->
+<footer class="bottom no-print">
+  <div>
+    <span class="badge version" id="versionBadgeFooter">v12.0.0</span>
+    <span style="margin-left:.5rem;">Schéma de données : <span id="schemaBadge">–</span></span>
+  </div>
+  <div>Estimations indicatives. Ne remplace pas un avis médical.</div>
+</footer>
 
 <script>
 /* ============================================================
-   v11 — STOCKAGE HYBRIDE FIREBASE / LOCALSTORAGE
+   v12 — VERSIONING + NAVIGATION ONGLETS
    ============================================================ */
+
+// ---------- VERSIONS ----------
+const APP_VERSION = "12.0.0";
+const SCHEMA_VERSION = 2; // version actuelle du schéma de données
+const VERSION_STORAGE_KEY = 'app_version';
+const SCHEMA_STORAGE_KEY = 'schema_version';
+
+// Changelog (affiché au premier lancement ou lors d'une mise à jour)
+const CHANGELOG = {
+  1: "Version initiale — profil, menus, Nutri-Score.",
+  2: "Ajout : tags alimentaires, frigo, historique, amélioration auto, semaine A/B, localStorage hybride, interface à onglets."
+};
 
 // ---------- BACKEND LOCALSTORAGE ----------
 const LocalBackend = {
@@ -533,10 +685,81 @@ const LocalBackend = {
       }
     } catch(e){}
     return keys;
-  }
+  },
+  getVersion(){ return this.read(VERSION_STORAGE_KEY); },
+  setVersion(v){ return this.write(VERSION_STORAGE_KEY, v); },
+  getSchema(){ return this.read(SCHEMA_STORAGE_KEY); },
+  setSchema(v){ return this.write(SCHEMA_STORAGE_KEY, v); }
 };
 
-// ---------- FIREBASE ----------
+// ---------- MIGRATION ----------
+function migrateLocalData(){
+  const oldVersion = LocalBackend.getVersion() || 0;
+  const oldSchema = LocalBackend.getSchema() || 0;
+  const migrations = [];
+
+  if (oldSchema < 1){
+    migrations.push("Installation initiale (schéma v1)");
+  }
+  if (oldSchema < 2){
+    // v2 : normalisation des profils, ajout des tags/frigo/historique
+    const keys = LocalBackend.listAll();
+    let touched = 0;
+    keys.forEach(k => {
+      if (!k.includes('profil_')) return;
+      const data = LocalBackend.read(k.replace(LocalBackend.KEY_PREFIX, ''));
+      if (!data) return;
+      let changed = false;
+      if (!Array.isArray(data.tags)){ data.tags = []; changed = true; }
+      if (!Array.isArray(data.fridge)){ data.fridge = []; changed = true; }
+      if (!Array.isArray(data.nutriHistory)){ data.nutriHistory = []; changed = true; }
+      if (!Array.isArray(data.customRecipes)){ data.customRecipes = []; changed = true; }
+      if (changed){
+        LocalBackend.write(k.replace(LocalBackend.KEY_PREFIX, ''), data);
+        touched++;
+      }
+    });
+    if (touched > 0) migrations.push(`Migration schéma v1→v2 : ${touched} profil(s) mis à jour`);
+    else migrations.push("Migration schéma v1→v2 : aucun profil à migrer");
+  }
+
+  // Mise à jour des versions stockées
+  LocalBackend.setVersion(APP_VERSION);
+  LocalBackend.setSchema(SCHEMA_VERSION);
+
+  return { oldVersion, oldSchema, migrations };
+}
+
+function showMigrationBanner(info){
+  if (!info.migrations.length) return;
+  const banner = document.getElementById('migrationBanner');
+  if (!banner) return;
+  const isFirstRun = info.oldVersion === 0;
+  banner.innerHTML = `
+    <strong>${isFirstRun ? "🎉 Bienvenue !" : "ℹ️ Mise à jour de l'application"}</strong>
+    ${isFirstRun ? "Première utilisation détectée." : `Passage de v${info.oldVersion} → v${APP_VERSION}.`}
+    <div style="margin-top:.3rem;font-size:.8rem;">
+      ${info.migrations.map(m => '• ' + m).join('<br>')}
+    </div>
+    <button type="button" onclick="this.parentElement.classList.add('hidden')">OK, fermer</button>
+  `;
+  banner.classList.remove('hidden');
+  // Auto-fermeture après 15s
+  setTimeout(() => banner.classList.add('hidden'), 15000);
+}
+
+// ---------- AFFICHAGE VERSION ----------
+function renderVersionBadges(){
+  document.querySelectorAll('#versionBadge, #versionBadgeFooter').forEach(el => {
+    if (el) el.textContent = 'v' + APP_VERSION;
+  });
+  const s = document.getElementById('schemaBadge');
+  if (s) s.textContent = 'v' + SCHEMA_VERSION;
+}
+
+// ============================================================
+// FIREBASE (hybride)
+// ============================================================
 const firebaseConfig = {
   apiKey: "AIzaSyA3A1cTpCGpVcPiEOWC-4Vz4JYi3E6ZqYM",
   authDomain: "nutrition-energie.firebaseapp.com",
@@ -556,37 +779,38 @@ try {
       currentUid = c.user ? c.user.uid : null;
       firebaseOk = true;
       storageMode = 'firebase';
-      console.log("✅ Firebase authentifié — synchronisation cloud activée");
-      setTimeout(() => {
-        const s = document.getElementById('saveStatus');
-        if (s){ s.textContent = "☁️ Synchronisation Firebase activée"; s.className = "status ok"; }
-      }, 500);
+      console.log("✅ Firebase authentifié");
+      updateStorageBadge('firebase');
     })
     .catch(e => {
-      console.warn("⚠️ Firebase indisponible — bascule en localStorage :", e.message);
+      console.warn("⚠️ Firebase indisponible — localStorage activé :", e.message);
       firebaseOk = false;
       storageMode = 'local';
-      setTimeout(() => {
-        const s = document.getElementById('saveStatus');
-        if (s){ s.textContent = "💾 Sauvegarde locale activée (Firebase indisponible)"; s.className = "status warn"; }
-      }, 500);
+      updateStorageBadge('local');
     });
 } catch(e) {
-  console.warn("⚠️ Firebase non initialisé — bascule en localStorage :", e.message);
+  console.warn("⚠️ Firebase non initialisé — localStorage activé :", e.message);
   storageMode = 'local';
+  updateStorageBadge('local');
+}
+function updateStorageBadge(mode){
+  const b = document.getElementById('storageBadge');
+  if (!b) return;
+  if (mode === 'firebase') b.innerHTML = '☁️ Cloud';
+  else b.innerHTML = '💾 Local';
 }
 
 // ============================================================
-// BASE INGRÉDIENTS
+// BASE INGRÉDIENTS (condensée)
 // ============================================================
 const INGREDIENT_DB = {
   legumes: { label:"Légumes", emoji:"🥕", items:["Carottes","Courgettes","Tomates","Tomates cerises","Poivrons","Aubergine","Poireaux","Oignons","Ail","Échalotes","Brocolis","Chou-fleur","Épinards","Haricots verts","Petits pois","Pois chiches","Lentilles","Haricots rouges","Pommes de terre","Patates douces","Navets","Betteraves","Champignons","Concombres","Salade verte","Salade romaine","Roquette","Mâche","Endives","Céleri","Fenouil","Asperges","Artichauts","Maïs","Potiron","Butternut","Choux de Bruxelles","Chou rouge","Chou blanc","Radis","Pousses de soja","Bambou"] },
-  feculents: { label:"Féculents", emoji:"🍚", items:["Riz","Riz basmati","Riz complet","Riz arborio","Pâtes","Spaghetti","Coquillettes","Macaroni","Nouilles","Semoule","Boulgour","Quinoa","Lentilles corail","Lentilles vertes","Pois cassés","Flocons d'avoine","Muesli","Granola","Pain","Pain complet","Pain de mie","Baguette","Pita","Naan","Wrap","Tortilla","Galettes de sarrasin","Galettes de riz","Blé","Orge","Sarrasin","Polenta","Manioc","Biscottes","Chapelure"] },
+  feculents: { label:"Féculents", emoji:"🍚", items:["Riz","Riz basmati","Riz complet","Riz arborio","Pâtes","Spaghetti","Coquillettes","Macaroni","Nouilles","Semoule","Boulgour","Quinoa","Lentilles corail","Lentilles vertes","Pois cassés","Flocons d'avoine","Muesli","Granola","Pain","Pain complet","Pain de mie","Baguette","Pita","Naan","Wrap","Tortilla","Galettes de sarrasin","Galettes de riz","Blé","Orge","Sarrasin","Polenta","Biscottes","Chapelure"] },
   proteines: { label:"Viandes / Poissons", emoji:"🍗", items:["Poulet","Filet de poulet","Cuisse de poulet","Dinde","Escalope de dinde","Bœuf haché","Steak haché","Entrecôte","Rôti de bœuf","Bourguignon","Veau","Porc","Filet mignon","Côtes de porc","Agneau","Gigot d'agneau","Jambon blanc","Jambon cru","Lardons","Bacon","Saucisses","Chorizo","Pâté","Rillettes","Saumon","Saumon fumé","Thon en boîte","Thon frais","Cabillaud","Colin","Lieu","Truite","Sardines","Maquereau","Anchois","Crevettes","Moules","Saint-Jacques","Calamars","Surimi"] },
   laitages: { label:"Produits laitiers", emoji:"🧀", items:["Lait","Lait entier","Lait demi-écrémé","Lait écrémé","Lait d'amande","Lait de soja","Lait d'avoine","Lait de coco","Crème fraîche","Crème légère","Yaourt nature","Yaourt grec","Yaourt aux fruits","Skyr","Fromage blanc","Petit-suisse","Fromage râpé","Emmental","Gruyère","Comté","Parmesan","Mozzarella","Ricotta","Mascarpone","Feta","Chèvre","Brie","Camembert","Beurre","Beurre allégé","Margarine","Tzatziki"] },
   oeufs: { label:"Œufs", emoji:"🥚", items:["Œufs","Œufs de caille","Blancs d'œufs","Jaunes d'œufs"] },
-  fruits: { label:"Fruits", emoji:"🍎", items:["Pommes","Bananes","Poires","Oranges","Clémentines","Citrons","Citrons verts","Pêches","Abricots","Prunes","Cerises","Fraises","Framboises","Myrtilles","Mûres","Kiwis","Ananas","Mangues","Melon","Pastèque","Raisins","Figues","Dattes","Fruits rouges surgelés","Fruits de saison","Avocat","Grenade","Papaye","Litchis","Fruits secs","Raisins secs","Abricots secs","Pruneaux"] },
-  epicerie: { label:"Épicerie", emoji:"🫙", items:["Huile d'olive","Huile de tournesol","Huile de sésame","Huile de coco","Vinaigre","Vinaigre balsamique","Sauce soja","Sauce tomate","Coulis de tomate","Tomates concassées","Concentré de tomate","Moutarde","Mayonnaise","Ketchup","Miel","Confiture","Sucre","Sucre roux","Cassonade","Chocolat noir","Chocolat au lait","Cacao en poudre","Farine","Levure","Bicarbonate","Sel","Poivre","Paprika","Cumin","Curry","Cannelle","Thym","Romarin","Basilic","Origan","Herbes de Provence","Bouillon cube","Bouillon de volaille","Bouillon de légumes","Tahini","Beurre de cacahuète","Purée d'amande","Amandes","Noix","Noisettes","Pistaches","Noix de cajou","Noix de Grenoble","Graines de chia","Graines de lin","Graines de tournesol","Sésame"] },
+  fruits: { label:"Fruits", emoji:"🍎", items:["Pommes","Bananes","Poires","Oranges","Clémentines","Citrons","Citrons verts","Pêches","Abricots","Prunes","Cerises","Fraises","Framboises","Myrtilles","Mûres","Kiwis","Ananas","Mangues","Melon","Pastèque","Raisins","Figues","Dattes","Fruits rouges surgelés","Avocat","Grenade","Papaye","Litchis","Fruits secs","Raisins secs","Abricots secs","Pruneaux"] },
+  epicerie: { label:"Épicerie", emoji:"🫙", items:["Huile d'olive","Huile de tournesol","Huile de sésame","Huile de coco","Vinaigre","Vinaigre balsamique","Sauce soja","Sauce tomate","Coulis de tomate","Tomates concassées","Concentré de tomate","Moutarde","Mayonnaise","Ketchup","Miel","Confiture","Sucre","Sucre roux","Cassonade","Chocolat noir","Chocolat au lait","Cacao en poudre","Farine","Levure","Bicarbonate","Sel","Poivre","Paprika","Cumin","Curry","Cannelle","Thym","Romarin","Basilic","Origan","Herbes de Provence","Bouillon cube","Bouillon de volaille","Bouillon de légumes","Tahini","Beurre de cacahuète","Purée d'amande","Amandes","Noix","Noisettes","Pistaches","Noix de cajou","Graines de chia","Graines de lin","Graines de tournesol","Sésame"] },
   boissons: { label:"Boissons", emoji:"🥤", items:["Eau","Eau gazeuse","Thé","Thé vert","Café","Café en grains","Chocolat chaud","Jus d'orange","Jus de pomme","Jus de tomate","Smoothie","Soda","Limonade"] },
   surgeles: { label:"Surgelés", emoji:"❄️", items:["Petits pois surgelés","Haricots verts surgelés","Épinards surgelés","Brocolis surgelés","Poêlée de légumes surgelée","Frites","Poisson pané","Glace vanille","Baies surgelées","Fruits rouges surgelés"] },
   boulangerie: { label:"Boulangerie", emoji:"🥖", items:["Baguette","Croissant","Pain au chocolat","Brioche","Pain aux céréales","Pain de seigle","Pain pita"] },
@@ -700,19 +924,19 @@ function passesNutriMin(recipe, minLetter){
 // SUBSTITUTS
 // ============================================================
 const SUBSTITUTES = [
-  { match:/crème fraîche|crème légère|crème/i, name:"Crème fraîche", replace:"Yaourt grec ou fromage blanc",
+  { match:/crème fraîche|crème légère|crème/i, name:"Crème fraîche", replace:"Yaourt grec",
     apply: (r) => ({ ...r, p: (r.p||0) + 3, c: Math.max(0,(r.c||0) - 1), f: Math.max(0,(r.f||0) - 8), kcal: Math.max(0,(r.kcal||0) - 60),
       ingredients: (r.ingredients||[]).map(i => i.replace(/crème (fraîche|légère)|crème/gi, 'yaourt grec')),
-      name: r.name + " (allégée)", desc: (r.desc||'') + " Version allégée : yaourt à la place de la crème." }),
-    gain: 1, reason:"Remplace la crème par du yaourt : moins de graisses saturées." },
-  { match:/beurre(?! de cacahuète)/i, name:"Beurre", replace:"Huile d'olive vierge",
+      name: r.name + " (allégée)", desc: (r.desc||'') + " Version allégée." }),
+    gain: 1, reason:"Crème → yaourt : moins de graisses saturées." },
+  { match:/beurre(?! de cacahuète)/i, name:"Beurre", replace:"Huile d'olive",
     apply: (r) => ({ ...r, f: Math.max(0,(r.f||0) - 5), kcal: Math.max(0,(r.kcal||0) - 45),
       ingredients: (r.ingredients||[]).map(i => i.replace(/\b\d+\s*g beurre\b|\bbeurre\b/gi, "huile d'olive")) }),
-    gain: 1, reason:"Beurre → huile d'olive : graisses insaturées bénéfiques." },
+    gain: 1, reason:"Beurre → huile d'olive : graisses insaturées." },
   { match:/\bpâtes\b(?! complètes)|spaghetti|coquillettes|macaroni/i, name:"Pâtes blanches", replace:"Pâtes complètes",
     apply: (r) => ({ ...r, c: (r.c||0) + 2, kcal: Math.max(0,(r.kcal||0) - 10),
       ingredients: (r.ingredients||[]).map(i => i.replace(/pâtes(?! complètes)|spaghetti|coquillettes|macaroni/gi, 'pâtes complètes')) }),
-    gain: 1, reason:"Pâtes complètes : plus de fibres, IG plus bas." },
+    gain: 1, reason:"Pâtes complètes : plus de fibres." },
   { match:/\briz\b(?! complet|basmati|arborio)/i, name:"Riz blanc", replace:"Riz complet",
     apply: (r) => ({ ...r, c: (r.c||0) + 2, kcal: Math.max(0,(r.kcal||0) - 5),
       ingredients: (r.ingredients||[]).map(i => i.replace(/\briz\b(?! complet|basmati|arborio)/gi, 'riz complet')) }),
@@ -721,60 +945,55 @@ const SUBSTITUTES = [
     apply: (r) => ({ ...r, c: (r.c||0) + 1,
       ingredients: (r.ingredients||[]).map(i => i.replace(/\bpain\b(?! complet)|baguette|pain de mie/gi, 'pain complet')) }),
     gain: 1, reason:"Pain complet : 3x plus de fibres." },
-  { match:/jambon blanc|lardons|bacon|saucisse|chorizo/i, name:"Charcuterie", replace:"Poulet ou tofu fumé",
+  { match:/jambon blanc|lardons|bacon|saucisse|chorizo/i, name:"Charcuterie", replace:"Poulet",
     apply: (r) => ({ ...r, p: (r.p||0) + 2, f: Math.max(0,(r.f||0) - 8), kcal: Math.max(0,(r.kcal||0) - 70),
-      ingredients: (r.ingredients||[]).map(i => i.replace(/jambon blanc|lardons|bacon|saucisses?|chorizo/gi, 'poulet')),
-      desc: (r.desc||'') + " Poulet à la place de la charcuterie." }),
-    gain: 1, reason:"Charcuterie → poulet : moins de sodium et graisses saturées." },
+      ingredients: (r.ingredients||[]).map(i => i.replace(/jambon blanc|lardons|bacon|saucisses?|chorizo/gi, 'poulet')) }),
+    gain: 1, reason:"Charcuterie → poulet." },
   { match:/fromage râpé|emmental|gruyère|comté/i, name:"Fromage gras", replace:"Mozzarella",
     apply: (r) => ({ ...r, f: Math.max(0,(r.f||0) - 5), kcal: Math.max(0,(r.kcal||0) - 40),
       ingredients: (r.ingredients||[]).map(i => i.replace(/fromage râpé|emmental|gruyère|comté/gi, 'mozzarella')) }),
-    gain: 1, reason:"Mozzarella : plus légère, moins salée." },
-  { match:/huile(?! d'olive)/i, name:"Huile de tournesol", replace:"Huile d'olive",
-    apply: (r) => ({ ...r,
-      ingredients: (r.ingredients||[]).map(i => i.replace(/huile(?! d'olive)/gi, "huile d'olive")) }),
-    gain: 1, reason:"Huile d'olive : oméga-9 protecteurs." },
+    gain: 1, reason:"Mozzarella : plus légère." },
   { match:/frites|pommes de terre rissolées/i, name:"Frites", replace:"Pommes de terre au four",
     apply: (r) => ({ ...r, f: Math.max(0,(r.f||0) - 10), kcal: Math.max(0,(r.kcal||0) - 100),
       ingredients: (r.ingredients||[]).map(i => i.replace(/frites|pommes de terre rissolées/gi, 'pommes de terre au four')),
       name: (r.name||'').replace(/frites|rissolées/gi, 'au four') }),
-    gain: 2, reason:"Cuisson au four : 4x moins de graisses absorbées." },
+    gain: 2, reason:"Cuisson au four." },
   { match:/lait entier/i, name:"Lait entier", replace:"Lait demi-écrémé",
     apply: (r) => ({ ...r, f: Math.max(0,(r.f||0) - 3), kcal: Math.max(0,(r.kcal||0) - 25),
       ingredients: (r.ingredients||[]).map(i => i.replace(/lait entier/gi, 'lait demi-écrémé')) }),
-    gain: 1, reason:"Lait demi-écrémé : moins de graisses saturées." },
+    gain: 1, reason:"Lait demi-écrémé." },
   { match:/miel/i, name:"Miel", replace:"Moitié moins",
     apply: (r) => ({ ...r, c: Math.max(0,(r.c||0) - 3), kcal: Math.max(0,(r.kcal||0) - 15),
       ingredients: (r.ingredients||[]).map(i => i.replace(/(\d+)\s*(g|c\. à café) miel/gi, (m,n,u) => `${Math.ceil(parseInt(n)/2)} ${u} miel`)) }),
-    gain: 1, reason:"Moins de miel : même goût, moins de sucre." },
+    gain: 1, reason:"Moins de miel." },
   { match:/farine(?! complète)/i, name:"Farine blanche", replace:"Farine complète",
     apply: (r) => ({ ...r, c: (r.c||0) + 1,
       ingredients: (r.ingredients||[]).map(i => i.replace(/farine(?! complète)/gi, 'farine complète')) }),
-    gain: 1, reason:"Farine complète : fibres préservées." },
-  { match:/steak haché 15|steak haché 20|bœuf haché 15|bœuf haché 20/i, name:"Steak haché gras", replace:"Steak 5%",
+    gain: 1, reason:"Farine complète." },
+  { match:/steak haché 15|steak haché 20|bœuf haché 15|bœuf haché 20/i, name:"Steak gras", replace:"Steak 5%",
     apply: (r) => ({ ...r, f: Math.max(0,(r.f||0) - 8), kcal: Math.max(0,(r.kcal||0) - 80),
       ingredients: (r.ingredients||[]).map(i => i.replace(/(steak|bœuf) haché (15|20)%?/gi, '$1 haché 5%')) }),
-    gain: 2, reason:"Steak 5% : graisses saturées divisées par 3." },
-  { match:/lait de coco(?! léger|allégé)/i, name:"Lait de coco entier", replace:"Lait de coco allégé",
+    gain: 2, reason:"Steak 5%." },
+  { match:/lait de coco(?! léger|allégé)/i, name:"Coco entier", replace:"Coco allégé",
     apply: (r) => ({ ...r, f: Math.max(0,(r.f||0) - 6), kcal: Math.max(0,(r.kcal||0) - 55),
       ingredients: (r.ingredients||[]).map(i => i.replace(/lait de coco(?! léger|allégé)/gi, 'lait de coco allégé')) }),
-    gain: 1, reason:"Lait de coco allégé : 2x moins de graisses." },
+    gain: 1, reason:"Coco allégé." },
   { match:/sucre(?! roux|cassonade)/i, name:"Sucre blanc", replace:"Sucre roux",
     apply: (r) => ({ ...r,
       ingredients: (r.ingredients||[]).map(i => i.replace(/\bsucre\b(?! roux|cassonade)/gi, 'sucre roux')) }),
-    gain: 1, reason:"Sucre roux : goût plus prononcé = moins nécessaire." },
-  { match:/biscuit|gâteau|pâtisserie/i, name:"Biscuits industriels", replace:"Fruits secs + chocolat noir",
+    gain: 1, reason:"Sucre roux." },
+  { match:/biscuit|gâteau|pâtisserie/i, name:"Biscuits", replace:"Fruits secs",
     apply: (r) => ({ ...r, c: Math.max(0,(r.c||0) - 8), f: (r.f||0) + 3, kcal: Math.max(0,(r.kcal||0) - 30),
-      ingredients: (r.ingredients||[]).map(i => i.replace(/biscuits?|gâteaux?|pâtisserie/gi, 'fruits secs et chocolat noir')) }),
-    gain: 1, reason:"En-cas brut : moins de sucres rapides." },
-  { match:/ketchup|mayonnaise/i, name:"Sauce industrielle", replace:"Sauce yaourt",
+      ingredients: (r.ingredients||[]).map(i => i.replace(/biscuits?|gâteaux?|pâtisserie/gi, 'fruits secs')) }),
+    gain: 1, reason:"En-cas brut." },
+  { match:/ketchup|mayonnaise/i, name:"Sauce indus", replace:"Sauce yaourt",
     apply: (r) => ({ ...r, p: (r.p||0) + 2, f: Math.max(0,(r.f||0) - 8), kcal: Math.max(0,(r.kcal||0) - 65),
       ingredients: (r.ingredients||[]).map(i => i.replace(/ketchup|mayonnaise/gi, 'sauce yaourt')) }),
-    gain: 1, reason:"Sauce yaourt : 3x moins de calories." },
-  { match:/chocolat au lait/i, name:"Chocolat au lait", replace:"Chocolat noir 70%",
+    gain: 1, reason:"Sauce yaourt." },
+  { match:/chocolat au lait/i, name:"Chocolat lait", replace:"Noir 70%",
     apply: (r) => ({ ...r, c: Math.max(0,(r.c||0) - 5), kcal: Math.max(0,(r.kcal||0) - 20),
       ingredients: (r.ingredients||[]).map(i => i.replace(/chocolat au lait/gi, 'chocolat noir 70%')) }),
-    gain: 1, reason:"Chocolat noir : moins de sucre, plus d'antioxydants." }
+    gain: 1, reason:"Chocolat noir." }
 ];
 function applySubstitute(recipe, sub){
   const applied = sub.apply(recipe);
@@ -791,12 +1010,7 @@ function analyzeRecipeForImprovement(recipe){
       const newRecipe = applySubstitute(recipe, sub);
       const newNS = computeNutriScore(newRecipe);
       const gain = nutriRank(oldNS.letter) - nutriRank(newNS.letter);
-      if (gain > 0){
-        improvements.push({
-          sub, oldRecipe: recipe, newRecipe,
-          oldLetter: oldNS.letter, newLetter: newNS.letter, gain
-        });
-      }
+      if (gain > 0) improvements.push({ sub, oldRecipe: recipe, newRecipe, oldLetter: oldNS.letter, newLetter: newNS.letter, gain });
     }
   });
   improvements.sort((a,b) => b.gain - a.gain);
@@ -805,38 +1019,24 @@ function analyzeRecipeForImprovement(recipe){
 function autoImproveRecipe(recipe){
   let current = { ...recipe, ingredients: [...(recipe.ingredients||[])] };
   const applied = [];
-  const maxIter = 6;
-  for (let i=0; i<maxIter; i++){
+  for (let i=0; i<6; i++){
     const improvements = analyzeRecipeForImprovement(current);
     if (!improvements.length) break;
     const best = improvements[0];
-    applied.push({
-      reason: best.sub.reason,
-      from: best.sub.name,
-      to: best.sub.replace,
-      oldLetter: best.oldLetter,
-      newLetter: best.newLetter
-    });
+    applied.push({ reason: best.sub.reason, from: best.sub.name, to: best.sub.replace, oldLetter: best.oldLetter, newLetter: best.newLetter });
     current = best.newRecipe;
   }
   return { recipe: current, applied, originalLetter: getNutriScore(recipe).letter, finalLetter: getNutriScore(current).letter };
 }
-
 function autoImproveMenu(){
-  if (!window._currentMeals && !window._currentWeek){
-    alert("Génère d'abord un menu ou une semaine.");
-    return;
-  }
+  if (!window._currentMeals && !window._currentWeek){ alert("Génère d'abord un menu."); return; }
   const results = [];
   const processMeal = (meal) => {
     if (!meal || !meal.recipe || !meal.recipe.name) return null;
     const originalRecipe = meal.recipe;
     const res = autoImproveRecipe(originalRecipe);
     if (!res || !res.applied || !res.applied.length) return null;
-    return {
-      meal, oldRecipe: originalRecipe, newRecipe: res.recipe,
-      applied: res.applied, originalLetter: res.originalLetter, finalLetter: res.finalLetter
-    };
+    return { meal, oldRecipe: originalRecipe, newRecipe: res.recipe, applied: res.applied, originalLetter: res.originalLetter, finalLetter: res.finalLetter };
   };
   if (window._currentWeek){
     window._currentWeek.forEach(day => {
@@ -862,7 +1062,7 @@ function renderImprovePanel(results){
   const content = $('improveContent');
   if (!content) return;
   if (!results || !results.length){
-    content.innerHTML = `<div class="suggestion empty">🎉 Aucune amélioration automatique n'a pu être appliquée : tes plats sont déjà optimaux ou aucune substitution connue n'est pertinente.</div>`;
+    content.innerHTML = `<div class="suggestion empty">🎉 Aucune amélioration nécessaire : tes plats sont déjà optimaux.</div>`;
     $('improveCard').classList.remove('hidden');
     return;
   }
@@ -874,25 +1074,22 @@ function renderImprovePanel(results){
     }
   });
   let html = `<div class="improve-box">
-    <h4>✨ ${results.length} plat(s) optimisé(s) — ${improvedCount} avec gain de Nutri-Score</h4>
-    <p style="font-size:.9rem;margin:.3rem 0;">Total de lettres gagnées : <strong style="color:var(--sage);">+${totalGain}</strong></p>
+    <h4>✨ ${results.length} plat(s) optimisé(s) — ${improvedCount} avec gain</h4>
+    <p style="font-size:.88rem;margin:.3rem 0;">Total lettres gagnées : <strong style="color:var(--sage);">+${totalGain}</strong></p>
   </div>`;
   results.forEach(r => {
     if (!r || !r.meal || !r.oldRecipe || !r.newRecipe) return;
-    const mealType = r.meal.type || 'Repas';
-    const oldName = r.oldRecipe.name || '(sans nom)';
-    const newName = r.newRecipe.name || '(sans nom)';
     const origL = r.originalLetter || 'C';
     const finalL = r.finalLetter || 'C';
     const gainLetters = nutriRank(origL) - nutriRank(finalL);
     html += `<div class="improve-preview">
-      <div class="row-line" style="border-bottom:1px solid var(--line);padding-bottom:.4rem;">
-        <strong>${mealType} — ${oldName}</strong>
+      <div class="row-line" style="border-bottom:1px solid var(--line);padding-bottom:.35rem;">
+        <strong>${r.meal.type || 'Repas'} — ${r.oldRecipe.name || ''}</strong>
         <span>${nutriBadge(origL)} <span class="arrow">→</span> ${nutriBadge(finalL)} ${gainLetters > 0 ? `<span class="gain">(+${gainLetters})</span>` : ''}</span>
       </div>
-      <div style="font-size:.85rem;color:var(--sage);padding:.3rem 0;font-style:italic;">→ ${newName}</div>
+      <div style="font-size:.82rem;color:var(--sage);padding:.25rem 0;font-style:italic;">→ ${r.newRecipe.name || ''}</div>
       ${(r.applied || []).map(a => `<div class="row-line">
-        <span style="font-size:.85rem;">${a.reason || ''}</span>
+        <span style="font-size:.82rem;">${a.reason || ''}</span>
         <span class="change">${a.from || ''} ${a.oldLetter ? nutriBadge(a.oldLetter) : ''} <span class="arrow">→</span> ${a.to || ''} ${a.newLetter ? nutriBadge(a.newLetter) : ''}</span>
       </div>`).join('')}
     </div>`;
@@ -918,7 +1115,6 @@ function passesAllFilters(r){
   }
   return true;
 }
-
 function generateWeekAB(target){
   const key = currentProfileKey();
   const recent = recentHistory[key] || [];
@@ -1229,10 +1425,9 @@ function recordWeekHistory(week){
   nutriHistory.push(entry);
   if (nutriHistory.length > 26) nutriHistory.shift();
   renderHistory();
-  // Persistance hybride
   if (window._profile && window._profile.prenom){
     const key = currentProfileKey();
-    const histPayload = { nutriHistory: nutriHistory.slice(-26) };
+    const histPayload = { nutriHistory: nutriHistory.slice(-26), _schema: SCHEMA_VERSION };
     if (db && firebaseOk){
       db.collection('profils').doc(key).set(histPayload, { merge: true })
         .catch(e => {
@@ -1253,11 +1448,10 @@ function renderHistory(){
   if (!nutriHistory.length){
     wrap.innerHTML = `<div class="hist-empty">Aucune semaine enregistrée.<br>Génère une semaine pour commencer.</div>`;
     $('historyStats').innerHTML = '';
-    card.classList.remove('hidden');
     return;
   }
   const data = nutriHistory.slice(-8);
-  const w = 720, h = 200, padL = 40, padR = 20, padT = 20, padB = 30;
+  const w = 720, h = 170, padL = 40, padR = 20, padT = 15, padB = 25;
   const innerW = w - padL - padR, innerH = h - padT - padB;
   const maxPts = Math.max(2, data.length - 1);
   const colors = ['#038141','#85BB2F','#FECB02','#EE8100','#E63E11'];
@@ -1265,7 +1459,7 @@ function renderHistory(){
   for (let i=0; i<5; i++){
     const y = padT + (i/4)*innerH;
     gridLines += `<line x1="${padL}" y1="${y}" x2="${w-padR}" y2="${y}" stroke="#DDD5C2" stroke-width="1" stroke-dasharray="${i===0||i===4?'':'3,3'}"/>`;
-    gridLines += `<text x="${padL-10}" y="${y+4}" text-anchor="end" font-size="11" font-weight="700" fill="${colors[i]}">${'ABCDE'[i]}</text>`;
+    gridLines += `<text x="${padL-10}" y="${y+4}" text-anchor="end" font-size="10" font-weight="700" fill="${colors[i]}">${'ABCDE'[i]}</text>`;
   }
   const points = data.map((entry, i) => {
     const x = padL + (i/maxPts)*innerW;
@@ -1273,17 +1467,15 @@ function renderHistory(){
     return { x, y, entry };
   });
   const linePath = points.map((p, i) => (i===0 ? 'M' : 'L') + p.x + ' ' + p.y).join(' ');
-  const areaPath = linePath + ` L ${points[points.length-1].x} ${padT+innerH} L ${points[0].x} ${padT+innerH} Z`;
   let dots = '';
   points.forEach((p, i) => {
     const c = colors[Math.round(p.entry.avg)];
-    dots += `<circle cx="${p.x}" cy="${p.y}" r="6" fill="${c}" stroke="#fff" stroke-width="2"/>
-             <text x="${p.x}" y="${p.y-12}" text-anchor="middle" font-size="12" font-weight="700" fill="${c}">${p.entry.letter}</text>
-             <text x="${p.x}" y="${h-padB+18}" text-anchor="middle" font-size="10" fill="#5C5548">S${data.length - i}</text>`;
+    dots += `<circle cx="${p.x}" cy="${p.y}" r="5" fill="${c}" stroke="#fff" stroke-width="2"/>
+             <text x="${p.x}" y="${p.y-10}" text-anchor="middle" font-size="11" font-weight="700" fill="${c}">${p.entry.letter}</text>
+             <text x="${p.x}" y="${h-padB+15}" text-anchor="middle" font-size="9" fill="#5C5548">S${data.length - i}</text>`;
   });
   wrap.innerHTML = `<svg viewBox="0 0 ${w} ${h}" class="hist-chart" preserveAspectRatio="xMidYMid meet">
     ${gridLines}
-    <path d="${areaPath}" fill="rgba(95,115,80,.08)"/>
     <path d="${linePath}" fill="none" stroke="#5F7350" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
     ${dots}
   </svg>`;
@@ -1302,7 +1494,6 @@ function renderHistory(){
     <div class="hist-stat"><div class="num">${nutriBadge(avgLetter, true)}</div><div class="label">Moyenne</div></div>
     <div class="hist-stat" style="border-color:var(--ns-a);"><div class="num">${nutriBadge(best.letter, true)}</div><div class="label">Meilleure</div></div>
     <div class="hist-stat"><div class="num" style="color:${trendColor};">${trendTxt}</div><div class="label">Tendance</div></div>`;
-  card.classList.remove('hidden');
 }
 
 // ============================================================
@@ -1350,7 +1541,7 @@ function renderPrintableMenu(){
       const ns = getNutriScore(m.recipe);
       return `<div class="print-card"><img class="photo" src="${generatePlaceholder(m.recipe)}" alt=""><div class="body"><div class="cat">${m.type}</div><div class="name">${m.recipe.name} ${nutriBadge(ns.letter)}</div><div class="meta">${m.recipe.kcal} kcal · ${m.recipe.cost.toFixed(1)} € · ${m.recipe.time} min</div></div></div>`;
     }).join('');
-    card.classList.remove('hidden');
+    card.style.display = 'block';
     card.scrollIntoView({behavior:'smooth'});
     return;
   }
@@ -1360,14 +1551,14 @@ function renderPrintableMenu(){
     const ranks = (day.meals||[]).map(m => nutriRank(getNutriScore(m.recipe).letter));
     const avg = ranks.length ? ranks.reduce((a,b)=>a+b,0)/ranks.length : 2;
     const dayLetter = 'ABCDE'[Math.round(avg)] || 'C';
-    html += `<div style="grid-column:1/-1;margin-top:1rem;border-bottom:2px solid var(--ink);padding-bottom:.3rem;display:flex;justify-content:space-between;align-items:baseline;"><h3 style="margin:0;">${dayNames[di]}</h3><span style="font-size:.85rem;color:var(--ink-soft);">${nutriBadge(dayLetter)}</span></div>`;
+    html += `<div style="grid-column:1/-1;margin-top:.8rem;border-bottom:2px solid var(--ink);padding-bottom:.25rem;display:flex;justify-content:space-between;align-items:baseline;"><h3 style="margin:0;">${dayNames[di]}</h3><span style="font-size:.85rem;color:var(--ink-soft);">${nutriBadge(dayLetter)}</span></div>`;
     (day.meals||[]).forEach(m => {
       const ns = getNutriScore(m.recipe);
       html += `<div class="print-card"><img class="photo" src="${generatePlaceholder(m.recipe)}" alt=""><div class="body"><div class="cat">${m.type}</div><div class="name">${m.recipe.name} ${nutriBadge(ns.letter)}</div><div class="meta">${m.recipe.kcal} kcal · ${m.recipe.cost.toFixed(1)} €</div></div></div>`;
     });
   });
   grid.innerHTML = html;
-  card.classList.remove('hidden');
+  card.style.display = 'block';
   card.scrollIntoView({behavior:'smooth'});
 }
 
@@ -1611,14 +1802,9 @@ function renderMenu(target, skipHistory){
     });
   }
   recomputeDayTotal();
+  $('resultCard').classList.remove('hidden');
   $('menuCard').classList.remove('hidden');
-  $('addRecipeCard').classList.remove('hidden');
-  $('historyCard').classList.remove('hidden');
-  $('printMenuCard').classList.add('hidden');
-  $('shoppingCard').classList.add('hidden');
-  $('batchCard').classList.add('hidden');
-  $('menuTitle').textContent = 'Menu proposé';
-  renderHistory();
+  switchTab('menu');
 }
 function renderWeek(target, skipHistory){
   const week = generateWeek(target);
@@ -1656,15 +1842,11 @@ function renderWeek(target, skipHistory){
     list.appendChild(box);
   });
   $('dayTotal').textContent = 'Semaine générée · 7 jours';
+  $('resultCard').classList.remove('hidden');
   $('menuCard').classList.remove('hidden');
-  $('addRecipeCard').classList.remove('hidden');
-  $('historyCard').classList.remove('hidden');
-  $('printMenuCard').classList.add('hidden');
-  $('shoppingCard').classList.add('hidden');
-  $('batchCard').classList.add('hidden');
-  $('menuTitle').textContent = 'Menu de la semaine';
   window._currentTarget = target;
   if (!skipHistory) recordWeekHistory(week);
+  switchTab('menu');
 }
 function renderWeekAB(target){
   const result = generateWeekAB(target);
@@ -1677,9 +1859,8 @@ function renderWeekAB(target){
   const summaryPct = Math.round(result.ratio * 100);
   const summaryColor = result.ratio >= 0.8 ? 'var(--ns-a)' : (result.ratio >= 0.5 ? 'var(--ns-c)' : 'var(--ns-d)');
   const banner = document.createElement('div');
-  banner.style.cssText = `padding:.8rem 1rem;background:linear-gradient(135deg,#FCF2DC,#FFF9E8);border-left:4px solid ${summaryColor};margin-bottom:1rem;`;
-  banner.innerHTML = `<strong>🅰️🅱️ Semaine optimisée A/B</strong>
-    <div style="font-size:.9rem;margin-top:.3rem;">${result.totalAB}/${result.totalMeals} plats en Nutri-Score A ou B (${summaryPct}%)</div>`;
+  banner.style.cssText = `padding:.7rem .9rem;background:linear-gradient(135deg,#FCF2DC,#FFF9E8);border-left:4px solid ${summaryColor};margin-bottom:.8rem;`;
+  banner.innerHTML = `<strong>🅰️🅱️ Semaine optimisée A/B</strong><div style="font-size:.88rem;margin-top:.25rem;">${result.totalAB}/${result.totalMeals} plats en Nutri-Score A ou B (${summaryPct}%)</div>`;
   list.appendChild(banner);
   week.forEach((day, di) => {
     const box = document.createElement('div');
@@ -1710,15 +1891,11 @@ function renderWeekAB(target){
     list.appendChild(box);
   });
   $('dayTotal').textContent = `Semaine A/B · ${result.totalAB}/${result.totalMeals} A ou B`;
+  $('resultCard').classList.remove('hidden');
   $('menuCard').classList.remove('hidden');
-  $('addRecipeCard').classList.remove('hidden');
-  $('historyCard').classList.remove('hidden');
-  $('printMenuCard').classList.add('hidden');
-  $('shoppingCard').classList.add('hidden');
-  $('batchCard').classList.add('hidden');
-  $('menuTitle').textContent = 'Semaine optimisée A/B';
   window._currentTarget = target;
   recordWeekHistory(week);
+  switchTab('menu');
 }
 function swapMeal(idx){
   const key = currentProfileKey();
@@ -1749,11 +1926,11 @@ function showRecipeModal(r, defaultServings){
     const improvements = analyzeRecipeForImprovement(r);
     let improveHtml = '';
     if (improvements.length){
-      improveHtml = `<div style="margin-top:1rem;"><h4>💡 Améliorations possibles</h4>`;
+      improveHtml = `<div style="margin-top:.8rem;"><h4>💡 Améliorations possibles</h4>`;
       improvements.slice(0, 4).forEach(imp => {
         improveHtml += `<div class="suggestion">
           <div>${imp.sub.reason}</div>
-          <div style="font-size:.8rem;color:var(--ink-soft);margin-top:.2rem;">
+          <div style="font-size:.78rem;color:var(--ink-soft);margin-top:.15rem;">
             ${imp.sub.name} → ${imp.sub.replace} · ${nutriBadge(imp.oldLetter)} → ${nutriBadge(imp.newLetter)} <span class="impact">(+${imp.gain})</span>
           </div>
         </div>`;
@@ -1766,26 +1943,26 @@ function showRecipeModal(r, defaultServings){
       if (a.missingCount === 0) fridgeInfo = `<div class="fridge-status"><span class="ok">✓ Tous les ingrédients disponibles !</span></div>`;
       else fridgeInfo = `<div class="fridge-status"><span class="partial">Manque : ${a.missing.join(', ')}</span></div>`;
     }
-    return `<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;margin-bottom:.4rem;">
+    return `<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;margin-bottom:.3rem;">
         <h3 style="margin:0;">${r.name} ${nutriBadge(ns.letter, true)}</h3>
         <button class="modal-close" data-close>&times;</button>
       </div>
-      ${tagBadges ? `<div style="margin-bottom:.5rem;">${tagBadges}</div>` : ''}
-      <div class="meal-meta" style="margin-bottom:.5rem;">${r.kcal} kcal / pers. · ${r.cost.toFixed(2)} € / pers. · ${r.time} min · P${r.p||0}g / G${r.c||0}g / L${r.f||0}g</div>
+      ${tagBadges ? `<div style="margin-bottom:.4rem;">${tagBadges}</div>` : ''}
+      <div class="meal-meta" style="margin-bottom:.4rem;">${r.kcal} kcal / pers. · ${r.cost.toFixed(2)} € / pers. · ${r.time} min · P${r.p||0}g / G${r.c||0}g / L${r.f||0}g</div>
       <p class="meal-desc">${r.desc || ''}</p>
       <div class="nutri-note">Nutri-Score ${ns.letter}${ns.manual ? ' (manuel)' : ` · points négatifs ${ns.pointsNeg} / positifs ${ns.pointsPos}`}</div>
       ${fridgeInfo}
-      <div class="servings-bar" style="margin:.8rem 0;">
-        <label style="margin:0;">Personnes :</label>
+      <div class="servings-bar" style="margin:.7rem 0;">
+        <label style="margin:0;">Pers. :</label>
         <input type="number" id="modalServings" min="1" max="8" step="1" value="${s}">
-        <span style="color:var(--ink-soft);font-size:.85rem;">Total : ${totalKcal} kcal · ${totalCost} €</span>
+        <span style="color:var(--ink-soft);font-size:.82rem;">Total : ${totalKcal} kcal · ${totalCost} €</span>
       </div>
-      <h4>Ingrédients <span style="font-weight:400;font-size:.85rem;color:var(--ink-soft);">(pour ${s} pers.)</span></h4>
+      <h4>Ingrédients <span style="font-weight:400;font-size:.82rem;color:var(--ink-soft);">(pour ${s} pers.)</span></h4>
       <ul>${ings}</ul>
       <h4>Préparation</h4>
       <ol>${steps}</ol>
       ${improveHtml}
-      <div style="text-align:right;margin-top:1rem;"><button class="ghost" data-close>Fermer</button></div>`;
+      <div style="text-align:right;margin-top:.8rem;"><button class="ghost" data-close>Fermer</button></div>`;
   };
   const overlay = document.createElement('div');
   overlay.className = 'modal-overlay';
@@ -1842,7 +2019,7 @@ function renderBatchPlan(){
     items.forEach(it => { if (!grouped[it.prep]) grouped[it.prep] = []; grouped[it.prep].push(it); });
     let html = `<h3>${title}</h3><p class="meal-desc">${subtitle}</p><ul>`;
     Object.entries(grouped).forEach(([prep, arr]) => {
-      html += `<li><strong>${prep}</strong><br><span style="font-size:.85rem;color:var(--ink-soft);">Pour : ${arr.map(a => `${a.day} – ${a.type} (${a.dish})`).join(' · ')}</span></li>`;
+      html += `<li><strong>${prep}</strong><br><span style="font-size:.82rem;color:var(--ink-soft);">Pour : ${arr.map(a => `${a.day} – ${a.type} (${a.dish})`).join(' · ')}</span></li>`;
     });
     return html + '</ul>';
   };
@@ -1868,7 +2045,7 @@ async function searchOFF(query){
       const prot = n.proteins_100g || 0;
       const carb = n.carbohydrates_100g || 0;
       const fat = n.fat_100g || 0;
-      const img = p.image_thumb_url ? `<img src="${p.image_thumb_url}" alt="">` : `<div style="width:44px;height:44px;background:var(--paper);"></div>`;
+      const img = p.image_thumb_url ? `<img src="${p.image_thumb_url}" alt="">` : `<div style="width:40px;height:40px;background:var(--paper);"></div>`;
       return `<div class="off-item" data-off-index="${i}">${img}
           <div style="flex:1;"><div class="off-name">${p.product_name}${p.brands ? ' — '+p.brands : ''}</div>
           <div class="off-meta">${Math.round(kcal)} kcal · P${prot}g / G${carb}g / L${fat}g (100 g)</div></div></div>`;
@@ -1986,7 +2163,7 @@ function initFridgeUI(){
     catsEl.querySelectorAll('.fridge-cat').forEach(x => x.classList.remove('active'));
     el.classList.add('active'); activeCat = catKey;
     const cat = INGREDIENT_DB[catKey];
-    catContent.innerHTML = `<div style="font-size:.85rem;color:var(--ink-soft);margin-bottom:.4rem;">${cat.emoji} <strong>${cat.label}</strong> — clique pour ajouter</div><div class="fridge-chips" style="gap:.3rem;">${cat.items.map(item => `<span class="fridge-chip" data-cat-item="${item}" style="cursor:pointer;">+ ${item}</span>`).join('')}</div>`;
+    catContent.innerHTML = `<div style="font-size:.82rem;color:var(--ink-soft);margin-bottom:.35rem;">${cat.emoji} <strong>${cat.label}</strong> — clique pour ajouter</div><div class="fridge-chips" style="gap:.25rem;">${cat.items.map(item => `<span class="fridge-chip" data-cat-item="${item}" style="cursor:pointer;">+ ${item}</span>`).join('')}</div>`;
   });
   catContent.addEventListener('click', (e) => {
     const el = e.target.closest('[data-cat-item]');
@@ -2008,8 +2185,6 @@ function updateFridgeStatus(){
   const totalTol = all.filter(r => analyzeRecipeFridge(r, fridgeItems).missingCount <= 2).length;
   status.innerHTML = `<span class="ok">${totalOK} recettes 100% faisables</span> · <span class="partial">${totalTol} avec ≤2 manquants</span> sur ${all.length}.`;
 }
-
-// Helper : collecte toutes les recettes perso
 function collectCustomRecipes(){
   const all = [];
   Object.entries(RECIPES).forEach(([cat, arr]) => {
@@ -2017,6 +2192,25 @@ function collectCustomRecipes(){
   });
   return all;
 }
+
+// ============================================================
+// NAVIGATION ONGLETS
+// ============================================================
+function switchTab(tabName){
+  document.querySelectorAll('.panel').forEach(p => {
+    p.classList.toggle('active', p.dataset.panel === tabName);
+  });
+  document.querySelectorAll('.tab').forEach(t => {
+    t.classList.toggle('active', t.dataset.tab === tabName);
+  });
+  // Scroll en haut doux
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+document.getElementById('tabsBar').addEventListener('click', (e) => {
+  const btn = e.target.closest('.tab');
+  if (!btn) return;
+  switchTab(btn.dataset.tab);
+});
 
 // ============================================================
 // ÉVÉNEMENTS
@@ -2067,12 +2261,12 @@ $('profileForm').addEventListener('submit', function(e){
   $('bmrVal').textContent = Math.round(bmr);
   $('maintienVal').textContent = Math.round(maintien);
   $('cibleVal').textContent = Math.round(cible);
-  $('resultCard').classList.remove('hidden');
   window._profile = { prenom: $('prenom').value.trim(), poids, taille, age, sexe, activite, deficit,
     regime: currentDiet(), tags: currentTags(), fridge: fridgeItems.slice(), fridgeMode: currentFridgeMode(),
     nutriMin: currentNutriMin(),
     nbRepas: mealCount(), styleMenu: currentStyle(), exclusions: exclusionsList().join(', '),
-    servings: currentServings(), batchMode: $('batchMode').value, bmr, maintien, cible };
+    servings: currentServings(), batchMode: $('batchMode').value, bmr, maintien, cible,
+    _appVersion: APP_VERSION, _schema: SCHEMA_VERSION };
   renderMenu(Math.round(cible));
 });
 $('btnRegen').addEventListener('click', () => { if (window._currentTarget) renderMenu(window._currentTarget); });
@@ -2081,28 +2275,76 @@ $('btnWeekAB').addEventListener('click', () => { if (window._currentTarget) rend
 $('btnImprove').addEventListener('click', autoImproveMenu);
 $('btnBatch').addEventListener('click', renderBatchPlan);
 $('btnPrint').addEventListener('click', () => window.print());
-$('btnPrintMenu').addEventListener('click', renderPrintableMenu);
+$('btnPrintMenu').addEventListener('click', () => { renderPrintableMenu(); switchTab('stats'); });
 $('btnPrintNow').addEventListener('click', () => window.print());
 $('btnShopping').addEventListener('click', () => {
   renderShopping(currentServings());
   $('shoppingCard').classList.remove('hidden');
-  $('shoppingCard').scrollIntoView({behavior:'smooth'});
+  switchTab('shopping');
 });
-
-// Bouton Wipe local
 $('btnWipeLocal').addEventListener('click', () => {
   if (!confirm("Effacer toutes les données locales (profils, historique) ?")) return;
   const keys = LocalBackend.listAll();
   keys.forEach(k => { try { localStorage.removeItem(k); } catch(e){} });
   $('saveStatus').textContent = `${keys.length} clé(s) locale(s) supprimée(s).`;
   $('saveStatus').className = 'status ok';
+  // On conserve la version courante pour ne pas re-déclencher la migration
+  LocalBackend.setVersion(APP_VERSION);
+  LocalBackend.setSchema(SCHEMA_VERSION);
 });
 
-// PDF (avec chargement robuste jsPDF)
+// Export / Import JSON
+$('btnExportJSON').addEventListener('click', () => {
+  const data = {
+    appVersion: APP_VERSION,
+    schemaVersion: SCHEMA_VERSION,
+    exportedAt: new Date().toISOString(),
+    profiles: {}
+  };
+  LocalBackend.listAll().forEach(k => {
+    if (!k.includes('profil_')) return;
+    const key = k.replace(LocalBackend.KEY_PREFIX, '');
+    data.profiles[key] = LocalBackend.read(key);
+  });
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `nutrition_backup_${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  $('saveStatus').textContent = "📤 Données exportées.";
+  $('saveStatus').className = 'status ok';
+});
+$('btnImportJSON').addEventListener('click', () => $('importFile').click());
+$('importFile').addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const data = JSON.parse(reader.result);
+      if (!data.profiles) throw new Error("Format invalide");
+      let count = 0;
+      Object.entries(data.profiles).forEach(([key, val]) => {
+        if (val) { LocalBackend.write(key, val); count++; }
+      });
+      $('saveStatus').textContent = `📥 ${count} profil(s) importé(s).`;
+      $('saveStatus').className = 'status ok';
+    } catch(err){
+      $('saveStatus').textContent = "❌ Import échoué : " + err.message;
+      $('saveStatus').className = 'status warn';
+    }
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+});
+
+// PDF
 async function ensureJsPDF(){
   if (!window.jspdf && window._loadJsPDF){
     try { await window._loadJsPDF(); }
-    catch(e){ alert("Impossible de charger jsPDF (bloqué par le navigateur). Essaie d'autoriser unpkg/jsdelivr dans les paramètres de confidentialité."); throw e; }
+    catch(e){ alert("Impossible de charger jsPDF (bloqué par le navigateur)."); throw e; }
   }
   return window.jspdf;
 }
@@ -2121,7 +2363,7 @@ async function exportPDF(){
       doc.text(l, margin, y); y += space;
     });
   };
-  writeLine('Mon Menu — Plan nutritionnel', { size:18, style:'bold', space:9 });
+  writeLine(`Mon Menu — Plan nutritionnel (v${APP_VERSION})`, { size:18, style:'bold', space:9 });
   const dateStr = new Date().toLocaleDateString('fr-FR', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
   writeLine(dateStr, { size:10, color:[92,85,72], space:7 });
   if (window._profile){
@@ -2191,21 +2433,18 @@ async function exportPDF(){
   const total = doc.internal.getNumberOfPages();
   for (let i=1; i<=total; i++){
     doc.setPage(i); doc.setFontSize(8); doc.setTextColor(150,145,132);
-    doc.text(`Page ${i} / ${total} — Estimations indicatives.`, margin, pageH - 8);
+    doc.text(`Page ${i} / ${total} — v${APP_VERSION} — Estimations indicatives.`, margin, pageH - 8);
   }
   doc.save(`menu_${(window._profile?.prenom || 'profil').toLowerCase()}_${new Date().toISOString().slice(0,10)}.pdf`);
 }
 $('btnPDF').addEventListener('click', exportPDF);
 $('btnPrintPDF').addEventListener('click', exportPDF);
 
-// ============================================================
-// FIREBASE / LOCALSTORAGE : ENREGISTREMENT + CHARGEMENT
-// ============================================================
+// Enregistrer / charger
 $('btnSave').addEventListener('click', async function(){
   const status = $('saveStatus');
   const key = currentProfileKey();
   if (!window._profile){ status.textContent = "Calcule d'abord ton objectif."; return; }
-
   const profileData = {
     ...window._profile,
     tags: currentTags(),
@@ -2215,10 +2454,10 @@ $('btnSave').addEventListener('click', async function(){
     recentMeals: recentHistory[key] || [],
     nutriHistory: nutriHistory.slice(-26),
     customRecipes: collectCustomRecipes(),
+    _appVersion: APP_VERSION,
+    _schema: SCHEMA_VERSION,
     updatedAt: new Date().toISOString()
   };
-
-  // 1) Essai Firebase si dispo
   if (db && firebaseOk){
     try {
       await db.collection('profils').doc(key).set(profileData, { merge: true });
@@ -2229,32 +2468,40 @@ $('btnSave').addEventListener('click', async function(){
       console.warn("Firebase write échoué, bascule localStorage :", err.message);
     }
   }
-  // 2) Fallback localStorage
   if (LocalBackend.write('profil_' + key, profileData)){
     status.textContent = "Profil enregistré ✓ (local)";
     status.className = "status ok";
   } else {
-    status.textContent = "❌ Échec de l'enregistrement local (localStorage bloqué ?)";
+    status.textContent = "❌ Échec de l'enregistrement local";
     status.className = "status warn";
   }
 });
-
 $('btnLoad').addEventListener('click', async function(){
   const status = $('saveStatus');
   const key = currentProfileKey();
   if (key === 'anonyme'){ status.textContent = "Indique un prénom."; return; }
 
   let data = null;
-  // 1) Firebase
   if (db && firebaseOk){
     try {
       const snap = await db.collection('profils').doc(key).get();
       if (snap.exists) data = snap.data();
     } catch(err){ console.warn("Firebase read échoué, essai localStorage :", err.message); }
   }
-  // 2) Fallback localStorage
   if (!data) data = LocalBackend.read('profil_' + key);
   if (!data){ status.textContent = `Aucun profil trouvé pour "${$('prenom').value.trim()}".`; return; }
+
+  // Migration à la volée si schéma ancien
+  const loadedSchema = data._schema || 0;
+  if (loadedSchema < SCHEMA_VERSION){
+    if (!Array.isArray(data.tags)) data.tags = [];
+    if (!Array.isArray(data.fridge)) data.fridge = [];
+    if (!Array.isArray(data.nutriHistory)) data.nutriHistory = [];
+    if (!Array.isArray(data.customRecipes)) data.customRecipes = [];
+    data._schema = SCHEMA_VERSION;
+    data._appVersion = APP_VERSION;
+    console.log(`Profil migré : schéma v${loadedSchema} → v${SCHEMA_VERSION}`);
+  }
 
   const set = (id, v) => { if (v !== undefined && v !== null) $(id).value = v; };
   set('poids', data.poids); set('taille', data.taille); set('age', data.age);
@@ -2287,11 +2534,9 @@ $('btnLoad').addEventListener('click', async function(){
       }
     });
   }
-
   status.textContent = "Profil chargé ✓" + (added ? ` (+${added} recettes)` : "") + ` — recalcule.`;
   status.className = "status ok";
 });
-
 $('addRecipeForm').addEventListener('submit', async function(e){
   e.preventDefault();
   const status = $('addRecipeStatus');
@@ -2311,15 +2556,7 @@ $('addRecipeForm').addEventListener('submit', async function(e){
   _tagCache.delete(recipe.name); _nutriCache.delete(recipe.name);
   $('addRecipeForm').reset(); $('rP').value = 0; $('rC').value = 0; $('rF').value = 0;
   $('offResults').classList.add('hidden');
-  const key = currentProfileKey();
-  if (db && firebaseOk && key !== 'anonyme'){
-    try {
-      await db.collection('profils').doc(key).set({ customRecipes: firebase.firestore.FieldValue.arrayUnion(recipe) }, { merge: true });
-      status.textContent = `"${recipe.name}" ajoutée ✓ (cloud)`;
-      return;
-    } catch(err){ console.warn("Firebase addRecipe échoué, on garde en session:", err.message); }
-  }
-  status.textContent = `"${recipe.name}" ajoutée en session (sauvegarde au prochain clic Enregistrer).`;
+  status.textContent = `"${recipe.name}" ajoutée ✓ — sera sauvegardée au prochain clic Enregistrer.`;
 });
 $('offSearch').addEventListener('click', () => {
   const q = $('offQuery').value.trim();
@@ -2384,7 +2621,7 @@ function renderBudgetWeek(){
   const baseTotal = SHOPPING_80.reduce((sum,x) => { const m = x.match(/~([0-9]+(?:,[0-9]+)?) €/); return sum + (m ? parseFloat(m[1].replace(',','.')) : 0); }, 0);
   const estimated = baseTotal * factor;
   html += `<div class="budget-total"><span>Courses estimées</span><span>~ ${estimated.toFixed(0)} €</span></div>`;
-  html += `<h3 style="margin-top:1.3rem;">🛒 Liste de courses</h3><div class="shopping">${SHOPPING_80.map(x => `<div>☐ ${x}</div>`).join('')}</div>`;
+  html += `<h3 style="margin-top:1.2rem;">🛒 Liste de courses</h3><div class="shopping">${SHOPPING_80.map(x => `<div>☐ ${x}</div>`).join('')}</div>`;
   r.innerHTML = html; r.classList.remove('hidden');
   window._budgetWeek = { people, budget, factor };
 }
@@ -2405,7 +2642,7 @@ async function exportBudgetWeekPDF(){
       doc.text(l, margin, y); y += space;
     });
   };
-  writeLine('Ma semaine — Plan repas', { size:18, style:'bold', space:9 });
+  writeLine(`Ma semaine — Plan repas (v${APP_VERSION})`, { size:18, style:'bold', space:9 });
   writeLine(`Pour ${people} personne(s) · Budget : ${budget} €`, { size:11, color:[92,85,72], space:7 });
   y += 3;
   WEEK_2P_80.forEach(d => {
@@ -2422,21 +2659,59 @@ async function exportBudgetWeekPDF(){
   doc.addPage(); y = margin;
   writeLine('🛒 Liste de courses', { size:16, style:'bold', space:9 });
   SHOPPING_80.forEach(x => writeLine(`☐ ${x}`, { size:10, space:5.5 }));
-  doc.save(`semaine_${people}p.pdf`);
+  doc.save(`semaine_${people}p_v${APP_VERSION}.pdf`);
 }
 $('btnBudgetWeek').addEventListener('click', renderBudgetWeek);
 $('btnBudgetPDF').addEventListener('click', exportBudgetWeekPDF);
 
-// Init
+// ============================================================
+// STATS D'USAGE
+// ============================================================
+function renderUsageStats(){
+  const el = $('usageStats');
+  if (!el) return;
+  const allRecipes = Object.values(RECIPES).flat();
+  const custom = allRecipes.filter(r => r._custom).length;
+  const profiles = LocalBackend.listAll().filter(k => k.includes('profil_')).length;
+  const historyWeeks = nutriHistory.length;
+  el.innerHTML = `
+    <div class="hist-stat"><div class="num">${allRecipes.length}</div><div class="label">Recettes disponibles</div></div>
+    <div class="hist-stat"><div class="num">${custom}</div><div class="label">Recettes perso</div></div>
+    <div class="hist-stat"><div class="num">${profiles}</div><div class="label">Profils locaux</div></div>
+    <div class="hist-stat"><div class="num">${historyWeeks}</div><div class="label">Semaines d'historique</div></div>
+    <div class="hist-stat"><div class="num">${storageMode === 'firebase' ? '☁️' : '💾'}</div><div class="label">Stockage ${storageMode === 'firebase' ? 'cloud' : 'local'}</div></div>
+  `;
+}
+
+// ============================================================
+// INITIALISATION
+// ============================================================
 (function init(){
+  // 1. Version
+  renderVersionBadges();
+  const migrationInfo = migrateLocalData();
+  showMigrationBanner(migrationInfo);
+
+  // 2. Champs par défaut
   $('servings').value = 1;
   $('servingsQuick').value = 1;
   $('servingsShopping').value = 1;
+
+  // 3. UI Tags et Frigo
   initTagsUI();
   initFridgeUI();
   updateTagsStatus();
+
+  // 4. Budget + historique + usage
   renderBudgetWeek();
   renderHistory();
+  renderUsageStats();
+
+  // 5. Console log de version
+  console.log(`%c🍽️ Mon Menu du Jour — v${APP_VERSION} (schéma v${SCHEMA_VERSION})`, 'color:#5F7350;font-weight:bold;font-size:14px;');
+  if (migrationInfo.oldVersion > 0 && migrationInfo.oldVersion !== APP_VERSION){
+    console.log(`Mise à jour v${migrationInfo.oldVersion} → v${APP_VERSION}`);
+  }
 })();
 </script>
 </body>
