@@ -13,9 +13,11 @@
 <script>
 // Chargement robuste de jsPDF avec 3 fallbacks
 (function(){
+  let loadingPromise = null; // évite de relancer 3 téléchargements si on clique 2x vite
   function loadJsPDF(){
-    return new Promise((resolve, reject) => {
-      if (window.jspdf) return resolve();
+    if (window.jspdf) return Promise.resolve();
+    if (loadingPromise) return loadingPromise; // requête déjà en cours : on la réutilise
+    loadingPromise = new Promise((resolve, reject) => {
       const sources = [
         'https://unpkg.com/jspdf@2.5.1/dist/jspdf.umd.min.js',
         'https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js',
@@ -23,7 +25,7 @@
       ];
       let i = 0;
       const tryNext = () => {
-        if (i >= sources.length) return reject(new Error("jsPDF introuvable"));
+        if (i >= sources.length){ loadingPromise = null; return reject(new Error("jsPDF introuvable")); }
         const s = document.createElement('script');
         s.src = sources[i++];
         s.onload = () => window.jspdf ? resolve() : tryNext();
@@ -32,6 +34,7 @@
       };
       tryNext();
     });
+    return loadingPromise;
   }
   window._loadJsPDF = loadJsPDF;
 })();
@@ -133,6 +136,11 @@
   .week-day h3{margin:.7rem 0 .2rem;font-size:1.1rem;}
   .week-day .day-summary{font-size:.78rem;color:var(--ink-soft);margin-bottom:.3rem;}
   @media(max-width:600px){.row{flex-direction:column;gap:0}.actions{flex-wrap:wrap}.actions button{width:100%;}}
+  .menu-more{margin-top:.7rem;border-top:1px dashed var(--line);padding-top:.6rem;}
+  .menu-more summary{cursor:pointer;font-size:.82rem;color:var(--ink-soft);list-style:none;}
+  .menu-more summary::-webkit-details-marker{display:none;}
+  .menu-more summary:hover{color:var(--ink);}
+  .menu-more[open] summary{margin-bottom:.2rem;}
 
   .badge{display:inline-block;font-size:.66rem;text-transform:uppercase;letter-spacing:.05em;padding:.12rem .45rem;border-radius:2px;background:var(--paper);border:1px solid var(--line);color:var(--ink-soft);margin-left:.35rem;}
   .badge.veg{background:#EAF0E2;border-color:#B9C9A6;color:var(--sage);}
@@ -311,12 +319,32 @@
        ============================================================ -->
   <div class="panel active" data-panel="profile">
 
+    <section class="card" id="authCard">
+      <h2>🔐 Mon compte</h2>
+      <div id="authLoggedOut">
+        <p class="meal-desc" style="margin:0 0 .8rem;">Connecte-toi pour retrouver ton profil sur tous tes appareils. Chaque compte est privé : personne d'autre ne peut voir tes données.</p>
+        <div class="row">
+          <div class="field"><label for="authEmail">E-mail</label><input type="text" id="authEmail" autocomplete="username" placeholder="toi@exemple.com"></div>
+          <div class="field"><label for="authPassword">Mot de passe</label><input type="password" id="authPassword" autocomplete="current-password" placeholder="6 caractères min."></div>
+        </div>
+        <div class="actions" style="margin-top:0;">
+          <button type="button" id="btnAuthLogin">Se connecter</button>
+          <button type="button" class="ghost" id="btnAuthSignup">Créer un compte</button>
+        </div>
+        <div class="status" id="authStatus"></div>
+      </div>
+      <div id="authLoggedIn" class="hidden">
+        <p class="meal-desc" style="margin:0 0 .6rem;">Connecté en tant que <strong id="authUserEmail"></strong>.</p>
+        <button type="button" class="ghost small" id="btnAuthLogout">Se déconnecter</button>
+      </div>
+    </section>
+
     <section class="card">
       <h2>Ton profil</h2>
       <form id="profileForm">
         <div class="row">
           <div class="field" style="flex:2;"><label for="prenom">Prénom</label><input type="text" id="prenom" maxlength="30" required placeholder="ex: Yves"></div>
-          <div class="field" style="flex:1; display:flex; align-items:flex-end;"><button type="button" class="ghost" id="btnLoad" style="width:100%;">Charger</button></div>
+          <div class="field hidden" id="btnLoadLocalWrap" style="flex:1; display:flex; align-items:flex-end;"><button type="button" class="ghost" id="btnLoadLocal" style="width:100%;">Charger (local)</button></div>
         </div>
         <div class="row">
           <div class="field"><label for="poids">Poids (kg)</label><input type="number" id="poids" min="30" max="250" step="0.1" required></div>
@@ -487,14 +515,19 @@
       </div>
       <div class="actions no-print">
         <button class="ghost" id="btnRegen">🔄 Autre menu</button>
-        <button class="ghost" id="btnWeek">📅 7 jours variés</button>
-        <button class="ghost" id="btnWeekAB">🅰️🅱️ Semaine A/B</button>
         <button class="gold" id="btnImprove">✨ Améliorer</button>
-        <button class="ghost" id="btnPrintMenu">📸 Vue imprimable</button>
-        <button class="ghost" id="btnPDF">📄 PDF</button>
-        <button class="ghost" id="btnPrint">🖨️ Imprimer</button>
         <button id="btnSave">💾 Enregistrer</button>
       </div>
+      <details class="menu-more no-print">
+        <summary>⋯ Plus d'options (semaine, export, impression)</summary>
+        <div class="actions" style="margin-top:.6rem;">
+          <button class="ghost" id="btnWeek">📅 7 jours variés</button>
+          <button class="ghost" id="btnWeekAB">🅰️🅱️ Semaine A/B</button>
+          <button class="ghost" id="btnPrintMenu">📸 Vue imprimable</button>
+          <button class="ghost" id="btnPDF">📄 PDF</button>
+          <button class="ghost" id="btnPrint">🖨️ Imprimer</button>
+        </div>
+      </details>
       <div class="status" id="saveStatus"></div>
     </section>
 
@@ -768,37 +801,93 @@ const firebaseConfig = {
   messagingSenderId: "980063664505",
   appId: "1:980063664505:web:f69a164c38fbfa9b78d7a8"
 };
-let db = null, currentUid = null, firebaseOk = false;
+let db = null, currentUid = null, currentUser = null, firebaseOk = false, authReady = false;
 let storageMode = 'local';
 
 try {
   firebase.initializeApp(firebaseConfig);
   db = firebase.firestore();
-  firebase.auth().signInAnonymously()
-    .then(c => {
-      currentUid = c.user ? c.user.uid : null;
-      firebaseOk = true;
-      storageMode = 'firebase';
-      console.log("✅ Firebase authentifié");
-      updateStorageBadge('firebase');
-    })
-    .catch(e => {
-      console.warn("⚠️ Firebase indisponible — localStorage activé :", e.message);
-      firebaseOk = false;
-      storageMode = 'local';
-      updateStorageBadge('local');
-    });
+  // Auth par e-mail/mot de passe : chaque personne a son propre compte et
+  // ne voit jamais les données d'un autre utilisateur (voir règles Firestore).
+  firebase.auth().onAuthStateChanged(user => {
+    currentUser = user;
+    currentUid = user ? user.uid : null;
+    firebaseOk = !!user;
+    storageMode = user ? 'firebase' : 'local';
+    authReady = true;
+    updateStorageBadge(storageMode);
+    updateAuthUI();
+    if (user) loadProfileForCurrentUser();
+  });
 } catch(e) {
   console.warn("⚠️ Firebase non initialisé — localStorage activé :", e.message);
   storageMode = 'local';
   updateStorageBadge('local');
 }
+// Sécurité : si onAuthStateChanged tarde à répondre (connexion lente), on
+// affiche quand même le mode local au bout de 4s pour ne pas bloquer l'UI.
+setTimeout(() => { if (!authReady) updateAuthUI(); }, 4000);
 function updateStorageBadge(mode){
   const b = document.getElementById('storageBadge');
   if (!b) return;
   if (mode === 'firebase') b.innerHTML = '☁️ Cloud';
   else b.innerHTML = '💾 Local';
 }
+function updateAuthUI(){
+  const out = document.getElementById('authLoggedOut');
+  const inn = document.getElementById('authLoggedIn');
+  if (!out || !inn) return;
+  const loadLocalWrap = document.getElementById('btnLoadLocalWrap');
+  if (currentUser){
+    out.classList.add('hidden');
+    inn.classList.remove('hidden');
+    const span = document.getElementById('authUserEmail');
+    if (span) span.textContent = currentUser.email || '(compte)';
+    if (loadLocalWrap) loadLocalWrap.classList.add('hidden');
+  } else {
+    out.classList.remove('hidden');
+    inn.classList.add('hidden');
+    if (loadLocalWrap) loadLocalWrap.classList.remove('hidden');
+  }
+}
+document.getElementById('btnLoadLocal').addEventListener('click', () => { loadProfileData(); });
+function authErrorMessage(err){
+  const map = {
+    'auth/email-already-in-use': "Un compte existe déjà avec cet e-mail.",
+    'auth/invalid-email': "Adresse e-mail invalide.",
+    'auth/weak-password': "Mot de passe trop court (6 caractères min.).",
+    'auth/wrong-password': "Mot de passe incorrect.",
+    'auth/user-not-found': "Aucun compte avec cet e-mail.",
+    'auth/invalid-credential': "E-mail ou mot de passe incorrect.",
+    'auth/too-many-requests': "Trop de tentatives, réessaie plus tard."
+  };
+  return map[err.code] || (err.message || "Erreur d'authentification.");
+}
+document.getElementById('btnAuthSignup').addEventListener('click', async () => {
+  const status = document.getElementById('authStatus');
+  const email = document.getElementById('authEmail').value.trim();
+  const pass = document.getElementById('authPassword').value;
+  if (!email || !pass){ status.textContent = "Renseigne un e-mail et un mot de passe."; status.className = 'status warn'; return; }
+  try {
+    await firebase.auth().createUserWithEmailAndPassword(email, pass);
+    status.textContent = "Compte créé ✓";
+    status.className = 'status ok';
+  } catch(e){ status.textContent = authErrorMessage(e); status.className = 'status warn'; }
+});
+document.getElementById('btnAuthLogin').addEventListener('click', async () => {
+  const status = document.getElementById('authStatus');
+  const email = document.getElementById('authEmail').value.trim();
+  const pass = document.getElementById('authPassword').value;
+  if (!email || !pass){ status.textContent = "Renseigne un e-mail et un mot de passe."; status.className = 'status warn'; return; }
+  try {
+    await firebase.auth().signInWithEmailAndPassword(email, pass);
+    status.textContent = "Connecté ✓";
+    status.className = 'status ok';
+  } catch(e){ status.textContent = authErrorMessage(e); status.className = 'status warn'; }
+});
+document.getElementById('btnAuthLogout').addEventListener('click', async () => {
+  try { await firebase.auth().signOut(); } catch(e){}
+});
 
 // ============================================================
 // BASE INGRÉDIENTS (condensée)
@@ -1426,10 +1515,10 @@ function recordWeekHistory(week){
   if (nutriHistory.length > 26) nutriHistory.shift();
   renderHistory();
   if (window._profile && window._profile.prenom){
-    const key = currentProfileKey();
+    const key = storageKey();
     const histPayload = { nutriHistory: nutriHistory.slice(-26), _schema: SCHEMA_VERSION };
-    if (db && firebaseOk){
-      db.collection('profils').doc(key).set(histPayload, { merge: true })
+    if (db && firebaseOk && currentUid){
+      db.collection('profils').doc(currentUid).set(histPayload, { merge: true })
         .catch(e => {
           console.warn("Firebase hist échoué, fallback local:", e.message);
           const existing = LocalBackend.read('profil_' + key) || {};
@@ -1569,6 +1658,10 @@ let recentHistory = {};
 const HISTORY_LENGTH = 60;
 const $ = (id) => document.getElementById(id);
 const currentProfileKey = () => (document.getElementById('prenom').value.trim().toLowerCase() || 'anonyme');
+// Clé de stockage réellement utilisée pour la persistance (cloud ET cache local) :
+// basée sur l'uid du compte connecté, jamais sur le prénom saisi. Sans compte,
+// on retombe sur une clé locale par prénom (mono-appareil, non synchronisée).
+const storageKey = () => (currentUid ? ('uid_' + currentUid) : ('local_' + currentProfileKey()));
 const currentStyle = () => document.getElementById('styleMenu')?.value || 'equilibre';
 const mealCount = () => parseInt(document.getElementById('nbRepas')?.value || '4', 10);
 const currentServings = () => {
@@ -1981,6 +2074,18 @@ function showRecipeModal(r, defaultServings){
     }
   });
 }
+// État des cases cochées de la liste de courses, persistant (survit à un
+// rechargement de page et se synchronise avec le profil sauvegardé).
+window._shoppingChecked = window._shoppingChecked || {};
+function persistShoppingChecked(){
+  const key = 'shopping_' + storageKey();
+  LocalBackend.write(key, window._shoppingChecked);
+  if (db && firebaseOk && currentUid){
+    db.collection('profils').doc(currentUid).set({ shoppingChecked: window._shoppingChecked }, { merge: true })
+      .catch(e => console.warn("Sync case cochée échouée :", e.message));
+  }
+}
+const persistShoppingCheckedDebounced = debounce(persistShoppingChecked, 500);
 function renderShopping(servings){
   const meals = window._currentMeals || [];
   const agg = {};
@@ -1995,12 +2100,20 @@ function renderShopping(servings){
   });
   const html = Object.values(agg).sort((a,b) => a.label.localeCompare(b.label)).map(x => {
     const scaled = scaleIngredient(`1 ${x.label}`, servings).replace(/^1\s+/, '');
-    const check = x.inFridge ? '☑' : '☐';
-    const cls = x.inFridge ? 'style="color:var(--sage);text-decoration:line-through;"' : '';
-    return `<div ${cls}>${check} ${scaled}${x.count > 1 ? ` <em>×${x.count}</em>` : ''}${x.inFridge ? ' <small>(déjà chez toi)</small>' : ''}</div>`;
+    const itemKey = x.label.toLowerCase();
+    const checked = window._shoppingChecked[itemKey] !== undefined ? window._shoppingChecked[itemKey] : x.inFridge;
+    const cls = checked ? 'style="color:var(--sage);text-decoration:line-through;"' : '';
+    return `<div ${cls}><label style="display:flex;align-items:center;gap:.4rem;cursor:pointer;"><input type="checkbox" data-shopping-item="${itemKey}" ${checked ? 'checked' : ''}> ${scaled}${x.count > 1 ? ` <em>×${x.count}</em>` : ''}${x.inFridge ? ' <small>(déjà chez toi)</small>' : ''}</label></div>`;
   }).join('');
   $('shoppingList').innerHTML = html || '<div>Aucun ingrédient à lister.</div>';
 }
+$('shoppingList').addEventListener('change', (e) => {
+  const cb = e.target.closest('[data-shopping-item]');
+  if (!cb) return;
+  window._shoppingChecked[cb.dataset.shoppingItem] = cb.checked;
+  cb.closest('div').style.cssText = cb.checked ? 'color:var(--sage);text-decoration:line-through;' : '';
+  persistShoppingCheckedDebounced();
+});
 function renderBatchPlan(){
   if (!window._currentWeek){ alert("Génère d'abord une semaine."); return; }
   const week = window._currentWeek;
@@ -2088,6 +2201,12 @@ function updateTagsStatus(){
     ? `${compat.length} recettes compatibles sur ${all.length} (${Math.round(compat.length/all.length*100)}%).`
     : `Aucun tag — toutes les recettes (${all.length}) sont candidates.`;
 }
+// Petit utilitaire de debounce, réutilisé pour toutes les recherches "live"
+// (évite de recalculer à chaque frappe sur mobile bas de gamme).
+function debounce(fn, delay=180){
+  let t = null;
+  return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), delay); };
+}
 function initFridgeUI(){
   const input = $('fridgeInput');
   const suggest = $('fridgeSuggest');
@@ -2110,7 +2229,8 @@ function initFridgeUI(){
     suggest.innerHTML = results.map(r => `<div class="fridge-suggest-item" data-suggest="${r.name}"><span>${r.emoji} ${highlight(r.name, q)}</span><span class="cat">${r.catLabel}</span></div>`).join('');
     suggest.classList.remove('hidden');
   };
-  input.addEventListener('input', showSuggest);
+  const showSuggestDebounced = debounce(showSuggest, 150);
+  input.addEventListener('input', showSuggestDebounced);
   input.addEventListener('focus', showSuggest);
   input.addEventListener('keydown', (e) => {
     if (e.key === 'Enter'){ e.preventDefault();
@@ -2443,7 +2563,7 @@ $('btnPrintPDF').addEventListener('click', exportPDF);
 // Enregistrer / charger
 $('btnSave').addEventListener('click', async function(){
   const status = $('saveStatus');
-  const key = currentProfileKey();
+  const key = storageKey();
   if (!window._profile){ status.textContent = "Calcule d'abord ton objectif."; return; }
   const profileData = {
     ...window._profile,
@@ -2451,45 +2571,48 @@ $('btnSave').addEventListener('click', async function(){
     fridge: fridgeItems.slice(),
     fridgeMode: currentFridgeMode(),
     nutriMin: currentNutriMin(),
-    recentMeals: recentHistory[key] || [],
+    recentMeals: recentHistory[currentProfileKey()] || [],
     nutriHistory: nutriHistory.slice(-26),
     customRecipes: collectCustomRecipes(),
+    shoppingChecked: window._shoppingChecked || {},
     _appVersion: APP_VERSION,
     _schema: SCHEMA_VERSION,
     updatedAt: new Date().toISOString()
   };
-  if (db && firebaseOk){
+  if (db && firebaseOk && currentUid){
     try {
-      await db.collection('profils').doc(key).set(profileData, { merge: true });
-      status.textContent = "Profil enregistré ✓ (cloud)";
+      await db.collection('profils').doc(currentUid).set(profileData, { merge: true });
+      status.textContent = "Profil enregistré ✓ (cloud, privé à ton compte)";
       status.className = "status ok";
+      LocalBackend.write('profil_' + key, profileData); // cache local pour usage hors-ligne
       return;
     } catch(err){
       console.warn("Firebase write échoué, bascule localStorage :", err.message);
     }
   }
   if (LocalBackend.write('profil_' + key, profileData)){
-    status.textContent = "Profil enregistré ✓ (local)";
+    status.textContent = currentUid ? "Profil enregistré ✓ (local, cloud indisponible)" : "Profil enregistré ✓ (local — connecte-toi pour synchroniser)";
     status.className = "status ok";
   } else {
     status.textContent = "❌ Échec de l'enregistrement local";
     status.className = "status warn";
   }
 });
-$('btnLoad').addEventListener('click', async function(){
+async function loadProfileData(){
   const status = $('saveStatus');
-  const key = currentProfileKey();
-  if (key === 'anonyme'){ status.textContent = "Indique un prénom."; return; }
-
+  const key = storageKey();
   let data = null;
-  if (db && firebaseOk){
+  if (db && firebaseOk && currentUid){
     try {
-      const snap = await db.collection('profils').doc(key).get();
+      const snap = await db.collection('profils').doc(currentUid).get();
       if (snap.exists) data = snap.data();
     } catch(err){ console.warn("Firebase read échoué, essai localStorage :", err.message); }
   }
   if (!data) data = LocalBackend.read('profil_' + key);
-  if (!data){ status.textContent = `Aucun profil trouvé pour "${$('prenom').value.trim()}".`; return; }
+  if (!data){
+    if (status){ status.textContent = currentUid ? "Aucun profil enregistré pour ce compte pour l'instant." : `Aucun profil local trouvé pour "${$('prenom').value.trim()}".`; }
+    return;
+  }
 
   // Migration à la volée si schéma ancien
   const loadedSchema = data._schema || 0;
@@ -2504,6 +2627,7 @@ $('btnLoad').addEventListener('click', async function(){
   }
 
   const set = (id, v) => { if (v !== undefined && v !== null) $(id).value = v; };
+  set('prenom', data.prenom);
   set('poids', data.poids); set('taille', data.taille); set('age', data.age);
   if (data.sexe){ const el = document.querySelector(`input[name=sexe][value=${data.sexe}]`); if (el) el.checked = true; }
   set('activite', data.activite); set('objectif', data.deficit);
@@ -2522,8 +2646,9 @@ $('btnLoad').addEventListener('click', async function(){
     updateFridgeStatus();
   }
   if (data.fridgeMode) $('fridgeMode').value = data.fridgeMode;
-  if (data.recentMeals) recentHistory[key] = data.recentMeals;
+  if (data.recentMeals) recentHistory[currentProfileKey()] = data.recentMeals;
   if (Array.isArray(data.nutriHistory)){ nutriHistory = data.nutriHistory.slice(); renderHistory(); }
+  if (data.shoppingChecked && typeof data.shoppingChecked === 'object'){ window._shoppingChecked = data.shoppingChecked; }
 
   let added = 0;
   if (Array.isArray(data.customRecipes)){
@@ -2534,9 +2659,13 @@ $('btnLoad').addEventListener('click', async function(){
       }
     });
   }
-  status.textContent = "Profil chargé ✓" + (added ? ` (+${added} recettes)` : "") + ` — recalcule.`;
-  status.className = "status ok";
-});
+  if (status){
+    status.textContent = "Profil chargé ✓" + (added ? ` (+${added} recettes)` : "") + ` — recalcule.`;
+    status.className = "status ok";
+  }
+}
+// Chargement automatique dès qu'un compte se connecte (plus besoin de bouton "Charger").
+async function loadProfileForCurrentUser(){ await loadProfileData(); }
 $('addRecipeForm').addEventListener('submit', async function(e){
   e.preventDefault();
   const status = $('addRecipeStatus');
@@ -2707,7 +2836,12 @@ function renderUsageStats(){
   renderHistory();
   renderUsageStats();
 
-  // 5. Console log de version
+  // 5. Cases de la liste de courses (cache local, avant connexion éventuelle)
+  const cachedChecked = LocalBackend.read('shopping_' + storageKey());
+  if (cachedChecked && typeof cachedChecked === 'object') window._shoppingChecked = cachedChecked;
+  updateAuthUI();
+
+  // 6. Console log de version
   console.log(`%c🍽️ Mon Menu du Jour — v${APP_VERSION} (schéma v${SCHEMA_VERSION})`, 'color:#5F7350;font-weight:bold;font-size:14px;');
   if (migrationInfo.oldVersion > 0 && migrationInfo.oldVersion !== APP_VERSION){
     console.log(`Mise à jour v${migrationInfo.oldVersion} → v${APP_VERSION}`);
