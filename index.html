@@ -3,13 +3,38 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Mon Menu du Jour — v9</title>
+<title>Mon Menu du Jour — v10</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+// Chargement robuste de jsPDF avec fallback
+(function(){
+  function loadJsPDF(){
+    return new Promise((resolve, reject) => {
+      if (window.jspdf) return resolve();
+      const sources = [
+        'https://unpkg.com/jspdf@2.5.1/dist/jspdf.umd.min.js',
+        'https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js',
+        'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js'
+      ];
+      let i = 0;
+      const tryNext = () => {
+        if (i >= sources.length) return reject(new Error("jsPDF introuvable"));
+        const s = document.createElement('script');
+        s.src = sources[i++];
+        s.onload = () => window.jspdf ? resolve() : tryNext();
+        s.onerror = tryNext;
+        document.head.appendChild(s);
+      };
+      tryNext();
+    });
+  }
+  window._loadJsPDF = loadJsPDF;
+})();
+</script>
 <style>
   :root{
     --paper:#F7F3EA; --ink:#2B2620; --ink-soft:#5C5548;
@@ -97,12 +122,8 @@
   .meal.ns-D{border-left:3px solid var(--ns-d);padding-left:.7rem;}
   .meal.ns-E{border-left:3px solid var(--ns-e);padding-left:.7rem;}
 
-  /* Carte "améliorer" */
   .improve-box{padding:.8rem 1rem;background:linear-gradient(135deg,#FFF9E8,#FCF2DC);border:1px solid var(--gold);margin-top:1rem;}
   .improve-box h4{margin:.1rem 0 .5rem;color:var(--gold);}
-  .improve-box .actions{margin-top:.5rem;}
-
-  /* Aperçu améliorations */
   .improve-preview{background:var(--paper);border:1px solid var(--line);padding:.8rem;margin-top:.6rem;}
   .improve-preview .row-line{display:flex;justify-content:space-between;gap:.8rem;padding:.35rem 0;border-bottom:1px dashed var(--line);font-size:.9rem;align-items:center;}
   .improve-preview .row-line:last-child{border-bottom:none;}
@@ -110,7 +131,6 @@
   .improve-preview .arrow{margin:0 .4rem;color:var(--gold);font-weight:700;}
   .improve-preview .gain{color:var(--sage);font-weight:600;}
 
-  /* Historique */
   .hist-chart{width:100%;height:200px;background:var(--paper);border:1px solid var(--line);margin-top:.6rem;}
   .hist-stats{display:flex;gap:1rem;flex-wrap:wrap;margin-top:.8rem;}
   .hist-stat{flex:1;min-width:120px;padding:.6rem .8rem;background:var(--paper);border-left:3px solid var(--sage);}
@@ -118,13 +138,11 @@
   .hist-stat .label{font-size:.75rem;color:var(--ink-soft);}
   .hist-empty{font-size:.85rem;color:var(--ink-soft);text-align:center;padding:1.5rem;}
 
-  /* Suggestions */
   .suggestion{padding:.6rem .8rem;background:var(--paper);border-left:3px solid var(--mustard);margin-bottom:.5rem;font-size:.9rem;}
   .suggestion .impact{font-weight:600;color:var(--sage);}
   .suggestion .arrow{color:var(--mustard);font-weight:700;margin:0 .3rem;}
   .suggestion.empty{border-left-color:var(--sage);color:var(--sage);}
 
-  /* Menu imprimable */
   .print-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:1rem;margin-top:1rem;}
   .print-card{background:var(--paper);border:1px solid var(--line);overflow:hidden;}
   .print-card .photo{width:100%;height:140px;object-fit:cover;display:block;}
@@ -396,11 +414,6 @@
     <div class="hist-stats" id="historyStats"></div>
   </section>
 
-  <section class="card hidden" id="suggestionsCard">
-    <h2>💡 Suggestions d'amélioration</h2>
-    <div id="suggestionsList"></div>
-  </section>
-
   <section class="card hidden" id="printMenuCard">
     <h2>📸 Menu de la semaine imprimable</h2>
     <div id="printGrid" class="print-grid"></div>
@@ -484,9 +497,10 @@
 
 <script>
 /* ============================================================
-   v9 — AMÉLIORATION AUTOMATIQUE + SEMAINE A/B
+   v10 — CORRIGÉ & STABLE
    ============================================================ */
 
+// ---------- FIREBASE (robuste) ----------
 const firebaseConfig = {
   apiKey: "AIzaSyA3A1cTpCGpVcPiEOWC-4Vz4JYi3E6ZqYM",
   authDomain: "nutrition-energie.firebaseapp.com",
@@ -495,12 +509,20 @@ const firebaseConfig = {
   messagingSenderId: "980063664505",
   appId: "1:980063664505:web:f69a164c38fbfa9b78d7a8"
 };
-let db = null, currentUid = null;
+let db = null, currentUid = null, firebaseOk = false;
 try {
   firebase.initializeApp(firebaseConfig);
   db = firebase.firestore();
-  firebase.auth().signInAnonymously().then(c => { currentUid = c.user ? c.user.uid : null; })
-    .catch(e => console.warn("Auth anon:", e.message));
+  firebase.auth().signInAnonymously()
+    .then(c => { currentUid = c.user ? c.user.uid : null; firebaseOk = true; })
+    .catch(e => {
+      console.warn("Auth anonyme indisponible — mode local :", e.message);
+      firebaseOk = false;
+      setTimeout(() => {
+        const s = document.getElementById('saveStatus');
+        if (s) s.textContent = "⚠️ Firebase indisponible — profil non sauvegardé (session uniquement).";
+      }, 500);
+    });
 } catch(e) { console.warn("Firebase non initialisé:", e.message); }
 
 // ============================================================
@@ -607,114 +629,109 @@ function computeNutriScore(recipe){
 }
 const _nutriCache = new Map();
 function getNutriScore(recipe){
+  if (!recipe || !recipe.name) return { letter:'C', score:0 };
   if (_nutriCache.has(recipe.name)) return _nutriCache.get(recipe.name);
   const ns = computeNutriScore(recipe);
   _nutriCache.set(recipe.name, ns);
   return ns;
 }
 function nutriBadge(letter, large=false){
-  return `<span class="nutri nutri-${letter}${large?' nutri-large':''}" title="Nutri-Score ${letter}">${letter}</span>`;
+  const safe = 'ABCDE'.includes(letter) ? letter : 'C';
+  return `<span class="nutri nutri-${safe}${large?' nutri-large':''}" title="Nutri-Score ${safe}">${safe}</span>`;
 }
-function nutriRank(letter){ return 'ABCDE'.indexOf(letter); }
+function nutriRank(letter){ return Math.max(0, 'ABCDE'.indexOf(letter || 'C')); }
 function passesNutriMin(recipe, minLetter){
   if (minLetter === 'E' || !minLetter) return true;
   return nutriRank(getNutriScore(recipe).letter) <= nutriRank(minLetter);
 }
 
 // ============================================================
-// MOTEUR D'AMÉLIORATION AUTOMATIQUE
+// SUBSTITUTS (moteur d'amélioration)
 // ============================================================
-// Substituts avec impact réel sur les macros (par portion)
-// p/c/f = delta (négatif = baisse, positif = hausse)
 const SUBSTITUTES = [
   { match:/crème fraîche|crème légère|crème/i, name:"Crème fraîche", replace:"Yaourt grec ou fromage blanc",
-    apply: (r) => ({ ...r, p: r.p + 3, c: r.c - 1, f: r.f - 8, kcal: r.kcal - 60,
-      ingredients: r.ingredients.map(i => i.replace(/crème (fraîche|légère)|crème/gi, 'yaourt grec')),
-      name: r.name + " (allégée)", desc: r.desc + " Version allégée : yaourt à la place de la crème." }),
+    apply: (r) => ({ ...r, p: (r.p||0) + 3, c: Math.max(0,(r.c||0) - 1), f: Math.max(0,(r.f||0) - 8), kcal: Math.max(0,(r.kcal||0) - 60),
+      ingredients: (r.ingredients||[]).map(i => i.replace(/crème (fraîche|légère)|crème/gi, 'yaourt grec')),
+      name: r.name + " (allégée)", desc: (r.desc||'') + " Version allégée : yaourt à la place de la crème." }),
     gain: 1, reason:"Remplace la crème par du yaourt : moins de graisses saturées." },
   { match:/beurre(?! de cacahuète)/i, name:"Beurre", replace:"Huile d'olive vierge",
-    apply: (r) => ({ ...r, f: Math.max(0, r.f - 5), kcal: r.kcal - 45,
-      ingredients: r.ingredients.map(i => i.replace(/\b\d+\s*g beurre\b|\bbeurre\b/gi, "huile d'olive")),
-      desc: r.desc + " Graisses insaturées." }),
+    apply: (r) => ({ ...r, f: Math.max(0,(r.f||0) - 5), kcal: Math.max(0,(r.kcal||0) - 45),
+      ingredients: (r.ingredients||[]).map(i => i.replace(/\b\d+\s*g beurre\b|\bbeurre\b/gi, "huile d'olive")) }),
     gain: 1, reason:"Beurre → huile d'olive : graisses insaturées bénéfiques." },
   { match:/\bpâtes\b(?! complètes)|spaghetti|coquillettes|macaroni/i, name:"Pâtes blanches", replace:"Pâtes complètes",
-    apply: (r) => ({ ...r, c: r.c + 2, kcal: r.kcal - 10,
-      ingredients: r.ingredients.map(i => i.replace(/pâtes(?! complètes)|spaghetti|coquillettes|macaroni/gi, 'pâtes complètes')) }),
+    apply: (r) => ({ ...r, c: (r.c||0) + 2, kcal: Math.max(0,(r.kcal||0) - 10),
+      ingredients: (r.ingredients||[]).map(i => i.replace(/pâtes(?! complètes)|spaghetti|coquillettes|macaroni/gi, 'pâtes complètes')) }),
     gain: 1, reason:"Pâtes complètes : plus de fibres, IG plus bas." },
   { match:/\briz\b(?! complet|basmati|arborio)/i, name:"Riz blanc", replace:"Riz complet",
-    apply: (r) => ({ ...r, c: r.c + 2, kcal: r.kcal - 5,
-      ingredients: r.ingredients.map(i => i.replace(/\briz\b(?! complet|basmati|arborio)/gi, 'riz complet')) }),
+    apply: (r) => ({ ...r, c: (r.c||0) + 2, kcal: Math.max(0,(r.kcal||0) - 5),
+      ingredients: (r.ingredients||[]).map(i => i.replace(/\briz\b(?! complet|basmati|arborio)/gi, 'riz complet')) }),
     gain: 1, reason:"Riz complet : plus de fibres." },
   { match:/\bpain\b(?! complet)|baguette|pain de mie/i, name:"Pain blanc", replace:"Pain complet",
-    apply: (r) => ({ ...r, c: r.c + 1,
-      ingredients: r.ingredients.map(i => i.replace(/\bpain\b(?! complet)|baguette|pain de mie/gi, 'pain complet')) }),
+    apply: (r) => ({ ...r, c: (r.c||0) + 1,
+      ingredients: (r.ingredients||[]).map(i => i.replace(/\bpain\b(?! complet)|baguette|pain de mie/gi, 'pain complet')) }),
     gain: 1, reason:"Pain complet : 3x plus de fibres." },
   { match:/jambon blanc|lardons|bacon|saucisse|chorizo/i, name:"Charcuterie", replace:"Poulet ou tofu fumé",
-    apply: (r) => ({ ...r, p: r.p + 2, f: Math.max(0, r.f - 8), kcal: r.kcal - 70,
-      ingredients: r.ingredients.map(i => i.replace(/jambon blanc|lardons|bacon|saucisses?|chorizo/gi, 'poulet')),
-      desc: r.desc + " Poulet à la place de la charcuterie." }),
+    apply: (r) => ({ ...r, p: (r.p||0) + 2, f: Math.max(0,(r.f||0) - 8), kcal: Math.max(0,(r.kcal||0) - 70),
+      ingredients: (r.ingredients||[]).map(i => i.replace(/jambon blanc|lardons|bacon|saucisses?|chorizo/gi, 'poulet')),
+      desc: (r.desc||'') + " Poulet à la place de la charcuterie." }),
     gain: 1, reason:"Charcuterie → poulet : moins de sodium et graisses saturées." },
   { match:/fromage râpé|emmental|gruyère|comté/i, name:"Fromage gras", replace:"Mozzarella",
-    apply: (r) => ({ ...r, f: Math.max(0, r.f - 5), kcal: r.kcal - 40,
-      ingredients: r.ingredients.map(i => i.replace(/fromage râpé|emmental|gruyère|comté/gi, 'mozzarella')) }),
+    apply: (r) => ({ ...r, f: Math.max(0,(r.f||0) - 5), kcal: Math.max(0,(r.kcal||0) - 40),
+      ingredients: (r.ingredients||[]).map(i => i.replace(/fromage râpé|emmental|gruyère|comté/gi, 'mozzarella')) }),
     gain: 1, reason:"Mozzarella : plus légère, moins salée." },
   { match:/huile(?! d'olive)/i, name:"Huile de tournesol", replace:"Huile d'olive",
     apply: (r) => ({ ...r,
-      ingredients: r.ingredients.map(i => i.replace(/huile(?! d'olive)/gi, "huile d'olive")) }),
+      ingredients: (r.ingredients||[]).map(i => i.replace(/huile(?! d'olive)/gi, "huile d'olive")) }),
     gain: 1, reason:"Huile d'olive : oméga-9 protecteurs." },
   { match:/frites|pommes de terre rissolées/i, name:"Frites", replace:"Pommes de terre au four",
-    apply: (r) => ({ ...r, f: Math.max(0, r.f - 10), kcal: r.kcal - 100,
-      ingredients: r.ingredients.map(i => i.replace(/frites|pommes de terre rissolées/gi, 'pommes de terre au four')),
-      name: r.name.replace(/frites|rissolées/gi, 'au four') }),
+    apply: (r) => ({ ...r, f: Math.max(0,(r.f||0) - 10), kcal: Math.max(0,(r.kcal||0) - 100),
+      ingredients: (r.ingredients||[]).map(i => i.replace(/frites|pommes de terre rissolées/gi, 'pommes de terre au four')),
+      name: (r.name||'').replace(/frites|rissolées/gi, 'au four') }),
     gain: 2, reason:"Cuisson au four : 4x moins de graisses absorbées." },
   { match:/lait entier/i, name:"Lait entier", replace:"Lait demi-écrémé",
-    apply: (r) => ({ ...r, f: Math.max(0, r.f - 3), kcal: r.kcal - 25,
-      ingredients: r.ingredients.map(i => i.replace(/lait entier/gi, 'lait demi-écrémé')) }),
+    apply: (r) => ({ ...r, f: Math.max(0,(r.f||0) - 3), kcal: Math.max(0,(r.kcal||0) - 25),
+      ingredients: (r.ingredients||[]).map(i => i.replace(/lait entier/gi, 'lait demi-écrémé')) }),
     gain: 1, reason:"Lait demi-écrémé : moins de graisses saturées." },
   { match:/miel/i, name:"Miel", replace:"Moitié moins",
-    apply: (r) => ({ ...r, c: Math.max(0, r.c - 3), kcal: r.kcal - 15,
-      ingredients: r.ingredients.map(i => i.replace(/(\d+)\s*(g|c\. à café) miel/gi, (m,n,u) => `${Math.ceil(parseInt(n)/2)} ${u} miel`)) }),
+    apply: (r) => ({ ...r, c: Math.max(0,(r.c||0) - 3), kcal: Math.max(0,(r.kcal||0) - 15),
+      ingredients: (r.ingredients||[]).map(i => i.replace(/(\d+)\s*(g|c\. à café) miel/gi, (m,n,u) => `${Math.ceil(parseInt(n)/2)} ${u} miel`)) }),
     gain: 1, reason:"Moins de miel : même goût, moins de sucre." },
   { match:/farine(?! complète)/i, name:"Farine blanche", replace:"Farine complète",
-    apply: (r) => ({ ...r, c: r.c + 1,
-      ingredients: r.ingredients.map(i => i.replace(/farine(?! complète)/gi, 'farine complète')) }),
+    apply: (r) => ({ ...r, c: (r.c||0) + 1,
+      ingredients: (r.ingredients||[]).map(i => i.replace(/farine(?! complète)/gi, 'farine complète')) }),
     gain: 1, reason:"Farine complète : fibres préservées." },
   { match:/steak haché 15|steak haché 20|bœuf haché 15|bœuf haché 20/i, name:"Steak haché gras", replace:"Steak 5%",
-    apply: (r) => ({ ...r, f: Math.max(0, r.f - 8), kcal: r.kcal - 80,
-      ingredients: r.ingredients.map(i => i.replace(/(steak|bœuf) haché (15|20)%?/gi, '$1 haché 5%')) }),
+    apply: (r) => ({ ...r, f: Math.max(0,(r.f||0) - 8), kcal: Math.max(0,(r.kcal||0) - 80),
+      ingredients: (r.ingredients||[]).map(i => i.replace(/(steak|bœuf) haché (15|20)%?/gi, '$1 haché 5%')) }),
     gain: 2, reason:"Steak 5% : graisses saturées divisées par 3." },
   { match:/lait de coco(?! léger|allégé)/i, name:"Lait de coco entier", replace:"Lait de coco allégé",
-    apply: (r) => ({ ...r, f: Math.max(0, r.f - 6), kcal: r.kcal - 55,
-      ingredients: r.ingredients.map(i => i.replace(/lait de coco(?! léger|allégé)/gi, 'lait de coco allégé')) }),
+    apply: (r) => ({ ...r, f: Math.max(0,(r.f||0) - 6), kcal: Math.max(0,(r.kcal||0) - 55),
+      ingredients: (r.ingredients||[]).map(i => i.replace(/lait de coco(?! léger|allégé)/gi, 'lait de coco allégé')) }),
     gain: 1, reason:"Lait de coco allégé : 2x moins de graisses." },
   { match:/sucre(?! roux|cassonade)/i, name:"Sucre blanc", replace:"Sucre roux",
     apply: (r) => ({ ...r,
-      ingredients: r.ingredients.map(i => i.replace(/\bsucre\b(?! roux|cassonade)/gi, 'sucre roux')) }),
+      ingredients: (r.ingredients||[]).map(i => i.replace(/\bsucre\b(?! roux|cassonade)/gi, 'sucre roux')) }),
     gain: 1, reason:"Sucre roux : goût plus prononcé = moins nécessaire." },
   { match:/biscuit|gâteau|pâtisserie/i, name:"Biscuits industriels", replace:"Fruits secs + chocolat noir",
-    apply: (r) => ({ ...r, c: Math.max(0, r.c - 8), f: r.f + 3, kcal: r.kcal - 30,
-      ingredients: r.ingredients.map(i => i.replace(/biscuits?|gâteaux?|pâtisserie/gi, 'fruits secs et chocolat noir')) }),
+    apply: (r) => ({ ...r, c: Math.max(0,(r.c||0) - 8), f: (r.f||0) + 3, kcal: Math.max(0,(r.kcal||0) - 30),
+      ingredients: (r.ingredients||[]).map(i => i.replace(/biscuits?|gâteaux?|pâtisserie/gi, 'fruits secs et chocolat noir')) }),
     gain: 1, reason:"En-cas brut : moins de sucres rapides." },
   { match:/ketchup|mayonnaise/i, name:"Sauce industrielle", replace:"Sauce yaourt",
-    apply: (r) => ({ ...r, p: r.p + 2, f: Math.max(0, r.f - 8), kcal: r.kcal - 65,
-      ingredients: r.ingredients.map(i => i.replace(/ketchup|mayonnaise/gi, 'sauce yaourt')) }),
+    apply: (r) => ({ ...r, p: (r.p||0) + 2, f: Math.max(0,(r.f||0) - 8), kcal: Math.max(0,(r.kcal||0) - 65),
+      ingredients: (r.ingredients||[]).map(i => i.replace(/ketchup|mayonnaise/gi, 'sauce yaourt')) }),
     gain: 1, reason:"Sauce yaourt : 3x moins de calories." },
   { match:/chocolat au lait/i, name:"Chocolat au lait", replace:"Chocolat noir 70%",
-    apply: (r) => ({ ...r, c: Math.max(0, r.c - 5), kcal: r.kcal - 20,
-      ingredients: r.ingredients.map(i => i.replace(/chocolat au lait/gi, 'chocolat noir 70%')) }),
+    apply: (r) => ({ ...r, c: Math.max(0,(r.c||0) - 5), kcal: Math.max(0,(r.kcal||0) - 20),
+      ingredients: (r.ingredients||[]).map(i => i.replace(/chocolat au lait/gi, 'chocolat noir 70%')) }),
     gain: 1, reason:"Chocolat noir : moins de sucre, plus d'antioxydants." }
 ];
-
-// Applique une substitution à une recette et renvoie la nouvelle recette
 function applySubstitute(recipe, sub){
   const applied = sub.apply(recipe);
-  // Nettoie les doublons de parenthèses dans le nom
   applied.name = applied.name.replace(/\s*\(allégée\)(\s*\(allégée\))+/g, ' (allégée)');
   return applied;
 }
-
-// Analyse une recette et renvoie la liste des améliorations possibles avec impact
 function analyzeRecipeForImprovement(recipe){
+  if (!recipe) return [];
   const hay = `${recipe.name} ${recipe.desc||''} ${(recipe.ingredients||[]).join(' ')}`.toLowerCase();
   const oldNS = getNutriScore(recipe);
   const improvements = [];
@@ -725,22 +742,15 @@ function analyzeRecipeForImprovement(recipe){
       const gain = nutriRank(oldNS.letter) - nutriRank(newNS.letter);
       if (gain > 0){
         improvements.push({
-          sub,
-          oldRecipe: recipe,
-          newRecipe,
-          oldLetter: oldNS.letter,
-          newLetter: newNS.letter,
-          gain
+          sub, oldRecipe: recipe, newRecipe,
+          oldLetter: oldNS.letter, newLetter: newNS.letter, gain
         });
       }
     }
   });
-  // Trie par gain décroissant
   improvements.sort((a,b) => b.gain - a.gain);
   return improvements;
 }
-
-// Applique TOUTES les améliorations compatibles à une recette (en cascade)
 function autoImproveRecipe(recipe){
   let current = { ...recipe, ingredients: [...(recipe.ingredients||[])] };
   const applied = [];
@@ -761,66 +771,67 @@ function autoImproveRecipe(recipe){
   return { recipe: current, applied, originalLetter: getNutriScore(recipe).letter, finalLetter: getNutriScore(current).letter };
 }
 
-// Applique l'amélioration automatique à tout le menu/semaine
+// ---------- CORRECTIF 2 : autoImproveMenu + renderImprovePanel robustes ----------
 function autoImproveMenu(){
   if (!window._currentMeals && !window._currentWeek){
     alert("Génère d'abord un menu ou une semaine.");
     return;
   }
-  const results = []; // {meal, oldRecipe, newRecipe, applied, oldLetter, newLetter}
+  const results = [];
+
+  const processMeal = (meal) => {
+    if (!meal || !meal.recipe || !meal.recipe.name) return null;
+    const originalRecipe = meal.recipe;
+    const res = autoImproveRecipe(originalRecipe);
+    if (!res || !res.applied || !res.applied.length) return null;
+    return {
+      meal,
+      oldRecipe: originalRecipe,
+      newRecipe: res.recipe,
+      applied: res.applied,
+      originalLetter: res.originalLetter,
+      finalLetter: res.finalLetter
+    };
+  };
 
   if (window._currentWeek){
-    // Améliore tous les repas de la semaine
     window._currentWeek.forEach(day => {
-      day.meals.forEach(meal => {
-        const res = autoImproveRecipe(meal.recipe);
-        if (res.applied.length){
-          results.push({ meal, ...res });
+      (day.meals || []).forEach(meal => {
+        const r = processMeal(meal);
+        if (r){
+          meal.recipe = r.newRecipe;
+          results.push(r);
         }
       });
     });
-    // Applique les changements
-    window._currentWeek.forEach(day => {
-      day.meals.forEach(meal => {
-        const res = autoImproveRecipe(meal.recipe);
-        if (res.applied.length) meal.recipe = res.recipe;
-      });
-    });
-    window._currentMeals = window._currentWeek[0].meals;
+    window._currentMeals = window._currentWeek[0] ? window._currentWeek[0].meals : window._currentMeals;
     renderImprovePanel(results);
-    renderWeek(window._currentTarget);
-    $('improveCard').scrollIntoView({behavior:'smooth'});
+    renderWeek(window._currentTarget, true); // true = pas de record history
   } else {
-    // Améliore le menu du jour
-    const meals = window._currentMeals;
-    meals.forEach(meal => {
-      const res = autoImproveRecipe(meal.recipe);
-      if (res.applied.length){
-        results.push({ meal, ...res });
+    (window._currentMeals || []).forEach(meal => {
+      const r = processMeal(meal);
+      if (r){
+        meal.recipe = r.newRecipe;
+        results.push(r);
       }
     });
-    meals.forEach(meal => {
-      const res = autoImproveRecipe(meal.recipe);
-      if (res.applied.length) meal.recipe = res.recipe;
-    });
     renderImprovePanel(results);
-    renderMenu(window._currentTarget);
-    $('improveCard').scrollIntoView({behavior:'smooth'});
+    renderMenu(window._currentTarget, true);
   }
+  document.getElementById('improveCard').scrollIntoView({behavior:'smooth'});
 }
 
 function renderImprovePanel(results){
   const content = $('improveContent');
-  if (!results.length){
+  if (!content) return;
+  if (!results || !results.length){
     content.innerHTML = `<div class="suggestion empty">🎉 Aucune amélioration automatique n'a pu être appliquée : tes plats sont déjà optimaux ou aucune substitution connue n'est pertinente.</div>`;
     $('improveCard').classList.remove('hidden');
     return;
   }
-  // Compte les lettres gagnées
-  let totalGain = 0;
-  let improvedCount = 0;
+  let totalGain = 0, improvedCount = 0;
   results.forEach(r => {
-    if (r.finalLetter !== r.originalLetter){
+    if (r && r.finalLetter && r.originalLetter && r.finalLetter !== r.originalLetter){
       totalGain += nutriRank(r.originalLetter) - nutriRank(r.finalLetter);
       improvedCount++;
     }
@@ -829,16 +840,23 @@ function renderImprovePanel(results){
     <h4>✨ ${results.length} plat(s) optimisé(s) — ${improvedCount} avec gain de Nutri-Score</h4>
     <p style="font-size:.9rem;margin:.3rem 0;">Total de lettres gagnées : <strong style="color:var(--sage);">+${totalGain}</strong></p>
   </div>`;
-  results.forEach((r, i) => {
+  results.forEach(r => {
+    if (!r || !r.meal || !r.oldRecipe || !r.newRecipe) return;
+    const mealType = r.meal.type || 'Repas';
+    const oldName = r.oldRecipe.name || '(sans nom)';
+    const newName = r.newRecipe.name || '(sans nom)';
+    const origL = r.originalLetter || 'C';
+    const finalL = r.finalLetter || 'C';
+    const gainLetters = nutriRank(origL) - nutriRank(finalL);
     html += `<div class="improve-preview">
       <div class="row-line" style="border-bottom:1px solid var(--line);padding-bottom:.4rem;">
-        <strong>${r.meal.type} — ${r.oldRecipe.name}</strong>
-        <span>${nutriBadge(r.originalLetter)} <span class="arrow">→</span> ${nutriBadge(r.finalLetter)} ${r.originalLetter !== r.finalLetter ? `<span class="gain">(+${nutriRank(r.originalLetter) - nutriRank(r.finalLetter)})</span>` : ''}</span>
+        <strong>${mealType} — ${oldName}</strong>
+        <span>${nutriBadge(origL)} <span class="arrow">→</span> ${nutriBadge(finalL)} ${gainLetters > 0 ? `<span class="gain">(+${gainLetters})</span>` : ''}</span>
       </div>
-      <div style="font-size:.85rem;color:var(--sage);padding:.3rem 0;font-style:italic;">→ ${r.recipe.name}</div>
-      ${r.applied.map(a => `<div class="row-line">
-        <span style="font-size:.85rem;">${a.reason}</span>
-        <span class="change">${a.from} ${nutriBadge(a.oldLetter)} <span class="arrow">→</span> ${a.to} ${nutriBadge(a.newLetter)}</span>
+      <div style="font-size:.85rem;color:var(--sage);padding:.3rem 0;font-style:italic;">→ ${newName}</div>
+      ${(r.applied || []).map(a => `<div class="row-line">
+        <span style="font-size:.85rem;">${a.reason || ''}</span>
+        <span class="change">${a.from || ''} ${a.oldLetter ? nutriBadge(a.oldLetter) : ''} <span class="arrow">→</span> ${a.to || ''} ${a.newLetter ? nutriBadge(a.newLetter) : ''}</span>
       </div>`).join('')}
     </div>`;
   });
@@ -847,37 +865,33 @@ function renderImprovePanel(results){
 }
 
 // ============================================================
-// SEMAINE OPTIMISÉE A/B
+// CORRECTIF 1 : passesAllFilters GLOBAL + generateWeekAB corrigée
 // ============================================================
+function passesAllFilters(r){
+  if (!r) return false;
+  if (!isRecipeCompatibleWithTags(r, currentTags())) return false;
+  const exclusions = exclusionsList();
+  const hay = `${r.name} ${r.desc||''} ${(r.ingredients||[]).join(' ')}`.toLowerCase();
+  if (exclusions.some(x => hay.includes(x))) return false;
+  const fm = currentFridgeMode();
+  if (fm !== 'off' && fridgeItems.length){
+    const a = analyzeRecipeFridge(r, fridgeItems);
+    if (fm === 'strict' && a.missingCount > 0) return false;
+    if (fm === 'maxManquant' && a.missingCount > 2) return false;
+  }
+  return true;
+}
+
 function generateWeekAB(target){
-  // Génère une semaine où chaque plat est A ou B (si possible)
-  const names = ["Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi","Dimanche"];
-  const week = [];
   const key = currentProfileKey();
   const recent = recentHistory[key] || [];
   const diet = currentDiet();
   const count = mealCount();
   const targets = allocateTargets(target, count);
 
-  // Filtre toutes les recettes compatibles avec les tags/frigo, groupées par catégorie
-  const exclusions = exclusionsList();
-  const passFilters = (arr) => arr.filter(r => {
-    if (!isRecipeCompatibleWithTags(r, currentTags())) return false;
-    const hay = `${r.name} ${r.desc} ${(r.ingredients||[]).join(' ')}`.toLowerCase();
-    if (exclusions.some(x => hay.includes(x))) return false;
-    const fm = currentFridgeMode();
-    if (fm !== 'off' && fridgeItems.length){
-      const a = analyzeRecipeFridge(r, fridgeItems);
-      if (fm === 'strict' && a.missingCount > 0) return false;
-      if (fm === 'maxManquant' && a.missingCount > 2) return false;
-    }
-    return true;
-  });
-
-  // Pool A/B prioritaire
   const poolAB = (arr) => {
-    const filtered = filterByDiet(arr, diet).filter(r => passesFilters([r]).length > 0);
-    const ab = filtered.filter(r => nutriRank(getNutriScore(r).letter) <= 1); // A ou B
+    const filtered = filterByDiet(arr, diet).filter(passesAllFilters);
+    const ab = filtered.filter(r => nutriRank(getNutriScore(r).letter) <= 1);
     return ab.length ? ab : filtered;
   };
 
@@ -885,43 +899,37 @@ function generateWeekAB(target){
   const poolLunch = poolAB(RECIPES.dejeunerDiner);
   const poolSnack = poolAB(RECIPES.collation);
 
+  const week = [];
   const usedWeek = [...recent];
-  let totalAB = 0;
-  let totalMeals = 0;
+  let totalAB = 0, totalMeals = 0;
 
   for (let d = 0; d < 7; d++){
     const meals = [];
     const usedToday = [];
 
-    // Petit-déj
     const bf = pickBest(poolBreakfast.length ? poolBreakfast : RECIPES.petitDej, usedWeek.concat(usedToday), diet, targets[0]);
-    if (bf){ meals.push({type:"Petit-déjeuner", cat:"petitDej", recipe: bf}); usedToday.push(bf.name); }
+    if (bf){ meals.push({type:"Petit-déjeuner", cat:"petitDej", recipe:bf}); usedToday.push(bf.name); }
 
-    // Déjeuner
     const lu = pickBest(poolLunch.length ? poolLunch : RECIPES.dejeunerDiner, usedWeek.concat(usedToday), diet, targets[1]);
-    if (lu){ meals.push({type:"Déjeuner", cat:"dejeunerDiner", recipe: lu}); usedToday.push(lu.name); }
+    if (lu){ meals.push({type:"Déjeuner", cat:"dejeunerDiner", recipe:lu}); usedToday.push(lu.name); }
 
-    // Dîner
     const di = pickBest(poolLunch.length ? poolLunch : RECIPES.dejeunerDiner, usedWeek.concat(usedToday), diet, targets[2]);
-    if (di){ meals.push({type:"Dîner", cat:"dejeunerDiner", recipe: di}); usedToday.push(di.name); }
+    if (di){ meals.push({type:"Dîner", cat:"dejeunerDiner", recipe:di}); usedToday.push(di.name); }
 
-    // Collations
     if (count >= 4){
       const s1 = pickBest(poolSnack.length ? poolSnack : RECIPES.collation, usedWeek.concat(usedToday), diet, targets[3]);
-      if (s1){ meals.push({type:"Collation", cat:"collation", recipe: s1}); usedToday.push(s1.name); }
+      if (s1){ meals.push({type:"Collation", cat:"collation", recipe:s1}); usedToday.push(s1.name); }
     }
     if (count >= 5){
       const s2 = pickBest(poolSnack.length ? poolSnack : RECIPES.collation, usedWeek.concat(usedToday), diet, targets[4]);
-      if (s2){ meals.push({type:"Collation", cat:"collation", recipe: s2}); usedToday.push(s2.name); }
+      if (s2){ meals.push({type:"Collation", cat:"collation", recipe:s2}); usedToday.push(s2.name); }
     }
 
-    // Compte les A/B
     meals.forEach(m => {
       totalMeals++;
       if (nutriRank(getNutriScore(m.recipe).letter) <= 1) totalAB++;
     });
 
-    // Ajout à l'historique
     saveHistory(key, usedToday, usedWeek);
     usedWeek.push(...usedToday);
 
@@ -968,6 +976,7 @@ const TAG_TRIGGERS = {
 };
 const _tagCache = new Map();
 function getRecipeTags(recipe){
+  if (!recipe || !recipe.name) return { detected: new Set(), incompatible: new Set() };
   if (_tagCache.has(recipe.name)) return _tagCache.get(recipe.name);
   const hay = `${recipe.name} ${recipe.desc||''} ${(recipe.ingredients||[]).join(' ')}`.toLowerCase();
   const tags = new Set();
@@ -1038,7 +1047,7 @@ function analyzeRecipeFridge(recipe, fridgeItems){
 }
 
 // ============================================================
-// BASE DE RECETTES (identique v8, condensée)
+// BASE DE RECETTES (identique v9 condensée)
 // ============================================================
 const RECIPES = {
   petitDej: [
@@ -1179,21 +1188,22 @@ const RECIPES = {
 // ============================================================
 let nutriHistory = [];
 function recordWeekHistory(week){
-  const ranks = week.flatMap(day => day.meals.map(m => nutriRank(getNutriScore(m.recipe).letter)));
+  if (!week || !week.length) return;
+  const ranks = week.flatMap(day => (day.meals||[]).map(m => nutriRank(getNutriScore(m.recipe).letter)));
   const avg = ranks.length ? ranks.reduce((a,b)=>a+b,0)/ranks.length : 2;
   const entry = {
     date: new Date().toISOString(),
     avg,
     letter: 'ABCDE'[Math.round(avg)],
     days: week.map(day => {
-      const dr = day.meals.map(m => nutriRank(getNutriScore(m.recipe).letter));
+      const dr = (day.meals||[]).map(m => nutriRank(getNutriScore(m.recipe).letter));
       return dr.length ? dr.reduce((a,b)=>a+b,0)/dr.length : 2;
     })
   };
   nutriHistory.push(entry);
   if (nutriHistory.length > 26) nutriHistory.shift();
   renderHistory();
-  if (db && window._profile && window._profile.prenom){
+  if (db && firebaseOk && window._profile && window._profile.prenom){
     const key = currentProfileKey();
     db.collection('profils').doc(key).set({ nutriHistory: nutriHistory.slice(-26) }, { merge: true })
       .catch(e => console.warn("Historique non sauvegardé:", e.message));
@@ -1202,6 +1212,7 @@ function recordWeekHistory(week){
 function renderHistory(){
   const card = $('historyCard');
   const wrap = $('historyChartWrap');
+  if (!wrap) return;
   if (!nutriHistory.length){
     wrap.innerHTML = `<div class="hist-empty">Aucune semaine enregistrée.<br>Génère une semaine pour commencer.</div>`;
     $('historyStats').innerHTML = '';
@@ -1309,11 +1320,11 @@ function renderPrintableMenu(){
   const dayNames = ["Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi","Dimanche"];
   let html = '';
   week.forEach((day, di) => {
-    const ranks = day.meals.map(m => nutriRank(getNutriScore(m.recipe).letter));
+    const ranks = (day.meals||[]).map(m => nutriRank(getNutriScore(m.recipe).letter));
     const avg = ranks.length ? ranks.reduce((a,b)=>a+b,0)/ranks.length : 2;
     const dayLetter = 'ABCDE'[Math.round(avg)] || 'C';
     html += `<div style="grid-column:1/-1;margin-top:1rem;border-bottom:2px solid var(--ink);padding-bottom:.3rem;display:flex;justify-content:space-between;align-items:baseline;"><h3 style="margin:0;">${dayNames[di]}</h3><span style="font-size:.85rem;color:var(--ink-soft);">${nutriBadge(dayLetter)}</span></div>`;
-    day.meals.forEach(m => {
+    (day.meals||[]).forEach(m => {
       const ns = getNutriScore(m.recipe);
       html += `<div class="print-card"><img class="photo" src="${generatePlaceholder(m.recipe)}" alt=""><div class="body"><div class="cat">${m.type}</div><div class="name">${m.recipe.name} ${nutriBadge(ns.letter)}</div><div class="meta">${m.recipe.kcal} kcal · ${m.recipe.cost.toFixed(1)} €</div></div></div>`;
     });
@@ -1385,7 +1396,6 @@ function nutriScoreBonus(r){
   if (s === 'nutriscore') return nutriRank(getNutriScore(r).letter) * 30;
   if (s === 'AB'){
     const rk = nutriRank(getNutriScore(r).letter);
-    // Pénalité forte si pas A ou B
     if (rk <= 1) return -60;
     return rk * 80;
   }
@@ -1419,7 +1429,6 @@ function saveHistory(key, names, prev){
   const arr = (prev || []).concat(names);
   recentHistory[key] = arr.slice(-HISTORY_LENGTH);
 }
-
 function parseQuantity(line){
   const m = line.match(/^(\d+(?:[.,]\d+)?|\d+\/\d+)\s*([a-zA-Zéèêàûôîç.]+)?\s*(.*)$/);
   if (!m) return { qty: null, unit: null, rest: line };
@@ -1448,7 +1457,6 @@ function scaleIngredient(line, servings){
   else qtyStr = newQty.toFixed(1).replace('.', ',');
   return `${qtyStr}${unit ? ' ' + unit : ''} ${rest}`.trim().replace(/\s+/g,' ');
 }
-
 function allocateTargets(target, count){
   if (count === 3) return [Math.round(target*.27), Math.round(target*.39), Math.round(target*.34)];
   if (count === 5) return [Math.round(target*.22), Math.round(target*.34), Math.round(target*.28), Math.round(target*.08), Math.round(target*.08)];
@@ -1485,14 +1493,13 @@ function generateWeek(target){
   for (let d = 0; d < 7; d++) week.push(generateMenu(target));
   return week;
 }
-
 function macroBarHtml(r){
-  const total = (r.p*4 + r.c*4 + r.f*9) || 1;
-  const p = Math.round(r.p*4/total*100);
-  const c = Math.round(r.c*4/total*100);
+  const total = ((r.p||0)*4 + (r.c||0)*4 + (r.f||0)*9) || 1;
+  const p = Math.round((r.p||0)*4/total*100);
+  const c = Math.round((r.c||0)*4/total*100);
   const f = Math.max(0, 100 - p - c);
   return `<div class="macro-bar"><span class="p" style="width:${p}%"></span><span class="c" style="width:${c}%"></span><span class="f" style="width:${f}%"></span></div>
-    <div class="macro-legend">Protéines ${r.p}g · Glucides ${r.c}g · Lipides ${r.f}g</div>`;
+    <div class="macro-legend">Protéines ${r.p||0}g · Glucides ${r.c||0}g · Lipides ${r.f||0}g</div>`;
 }
 function badgesHtml(r){
   let html = '';
@@ -1549,7 +1556,8 @@ function recomputeDayTotal(){
     $('nutriGlobalBadge').innerHTML = nutriBadge(globalLetter, true);
   }
 }
-function renderMenu(target){
+// Ajout d'un flag pour ne pas re-enregistrer l'historique après amélioration
+function renderMenu(target, skipHistory){
   const { meals } = generateMenu(target);
   window._currentMeals = meals;
   window._currentTarget = target;
@@ -1557,7 +1565,7 @@ function renderMenu(target){
   const list = $('menuList');
   list.innerHTML = '';
   if (!meals.length){
-    list.innerHTML = '<p class="meal-desc">Aucune recette ne correspond. Décoche un tag, élargis le Nutri-Score minimum ou vide le frigo strict.</p>';
+    list.innerHTML = '<p class="meal-desc">Aucune recette ne correspond. Décoche un tag ou élargis le Nutri-Score minimum.</p>';
   } else {
     meals.forEach((m, idx) => {
       const div = document.createElement('div');
@@ -1576,7 +1584,7 @@ function renderMenu(target){
   $('menuTitle').textContent = 'Menu proposé';
   renderHistory();
 }
-function renderWeek(target){
+function renderWeek(target, skipHistory){
   const week = generateWeek(target);
   const names = ["Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi","Dimanche"];
   const list = $('menuList');
@@ -1620,19 +1628,16 @@ function renderWeek(target){
   $('batchCard').classList.add('hidden');
   $('menuTitle').textContent = 'Menu de la semaine';
   window._currentTarget = target;
-  recordWeekHistory(week);
+  if (!skipHistory) recordWeekHistory(week);
 }
 function renderWeekAB(target){
-  // Semaine optimisée A/B
   const result = generateWeekAB(target);
   const week = result.week;
   const names = ["Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi","Dimanche"];
   const list = $('menuList');
   list.innerHTML = '';
-  window._currentMeals = week[0].meals;
+  window._currentMeals = week[0] ? week[0].meals : [];
   window._currentWeek = week;
-
-  // Bandeau de résumé en haut
   const summaryPct = Math.round(result.ratio * 100);
   const summaryColor = result.ratio >= 0.8 ? 'var(--ns-a)' : (result.ratio >= 0.5 ? 'var(--ns-c)' : 'var(--ns-d)');
   const banner = document.createElement('div');
@@ -1640,7 +1645,6 @@ function renderWeekAB(target){
   banner.innerHTML = `<strong>🅰️🅱️ Semaine optimisée A/B</strong>
     <div style="font-size:.9rem;margin-top:.3rem;">${result.totalAB}/${result.totalMeals} plats en Nutri-Score A ou B (${summaryPct}%)</div>`;
   list.appendChild(banner);
-
   week.forEach((day, di) => {
     const box = document.createElement('div');
     box.className = 'week-day';
@@ -1696,7 +1700,6 @@ function swapMeal(idx){
   if (div){ div.className = 'meal ns-' + getNutriScore(newRecipe).letter; div.innerHTML = mealRowHtml(window._currentMeals[idx], idx); }
   recomputeDayTotal();
 }
-
 function showRecipeModal(r, defaultServings){
   const servings = defaultServings || currentServings();
   const renderContent = (s) => {
@@ -1707,7 +1710,6 @@ function showRecipeModal(r, defaultServings){
     const ns = getNutriScore(r);
     const { detected } = getRecipeTags(r);
     const tagBadges = Array.from(detected).map(t => TAGS[t] ? `<span class="badge tag">${TAGS[t].emoji} ${TAGS[t].label}</span>` : '').join('');
-    // Améliorations dispo
     const improvements = analyzeRecipeForImprovement(r);
     let improveHtml = '';
     if (improvements.length){
@@ -1733,7 +1735,7 @@ function showRecipeModal(r, defaultServings){
         <button class="modal-close" data-close>&times;</button>
       </div>
       ${tagBadges ? `<div style="margin-bottom:.5rem;">${tagBadges}</div>` : ''}
-      <div class="meal-meta" style="margin-bottom:.5rem;">${r.kcal} kcal / pers. · ${r.cost.toFixed(2)} € / pers. · ${r.time} min · P${r.p}g / G${r.c}g / L${r.f}g</div>
+      <div class="meal-meta" style="margin-bottom:.5rem;">${r.kcal} kcal / pers. · ${r.cost.toFixed(2)} € / pers. · ${r.time} min · P${r.p||0}g / G${r.c||0}g / L${r.f||0}g</div>
       <p class="meal-desc">${r.desc || ''}</p>
       <div class="nutri-note">Nutri-Score ${ns.letter}${ns.manual ? ' (manuel)' : ` · points négatifs ${ns.pointsNeg} / positifs ${ns.pointsPos}`}</div>
       ${fridgeInfo}
@@ -1766,7 +1768,6 @@ function showRecipeModal(r, defaultServings){
     }
   });
 }
-
 function renderShopping(servings){
   const meals = window._currentMeals || [];
   const agg = {};
@@ -1787,7 +1788,6 @@ function renderShopping(servings){
   }).join('');
   $('shoppingList').innerHTML = html || '<div>Aucun ingrédient à lister.</div>';
 }
-
 function renderBatchPlan(){
   if (!window._currentWeek){ alert("Génère d'abord une semaine."); return; }
   const week = window._currentWeek;
@@ -1815,7 +1815,6 @@ function renderBatchPlan(){
   $('batchCard').classList.remove('hidden');
   $('batchCard').scrollIntoView({behavior:'smooth'});
 }
-
 async function searchOFF(query){
   const results = $('offResults');
   results.classList.remove('hidden');
@@ -1856,7 +1855,6 @@ function fillFromOFF(p){
   $('offResults').classList.add('hidden');
   $('addRecipeStatus').textContent = `Valeurs importées : ${p.product_name}.`;
 }
-
 function initTagsUI(){
   const groups = { diet: $('tagsDiet'), allergy: $('tagsAllergy'), belief: $('tagsBelief'), other: $('tagsOther') };
   Object.entries(TAGS).forEach(([key, t]) => {
@@ -1877,7 +1875,6 @@ function updateTagsStatus(){
     ? `${compat.length} recettes compatibles sur ${all.length} (${Math.round(compat.length/all.length*100)}%).`
     : `Aucun tag — toutes les recettes (${all.length}) sont candidates.`;
 }
-
 function initFridgeUI(){
   const input = $('fridgeInput');
   const suggest = $('fridgeSuggest');
@@ -2047,9 +2044,18 @@ $('btnShopping').addEventListener('click', () => {
   $('shoppingCard').scrollIntoView({behavior:'smooth'});
 });
 
-// PDF
-function exportPDF(){
-  const { jsPDF } = window.jspdf;
+// PDF (avec chargement robuste jsPDF)
+async function ensureJsPDF(){
+  if (!window.jspdf && window._loadJsPDF){
+    try { await window._loadJsPDF(); }
+    catch(e){ alert("Impossible de charger jsPDF (bloqué par le navigateur). Essaie d'autoriser cdnjs/unpkg dans les paramètres de confidentialité."); throw e; }
+  }
+  return window.jspdf;
+}
+async function exportPDF(){
+  const jsPDFLib = await ensureJsPDF();
+  if (!jsPDFLib) return;
+  const { jsPDF } = jsPDFLib;
   const doc = new jsPDF({ unit: 'mm', format: 'a4' });
   const margin = 15, pageH = 297, pageW = 210, maxW = pageW - margin * 2;
   let y = margin;
@@ -2136,12 +2142,13 @@ function exportPDF(){
   doc.save(`menu_${(window._profile?.prenom || 'profil').toLowerCase()}_${new Date().toISOString().slice(0,10)}.pdf`);
 }
 $('btnPDF').addEventListener('click', exportPDF);
+$('btnPrintPDF').addEventListener('click', exportPDF);
 
 // Firebase
 $('btnLoad').addEventListener('click', async function(){
   const status = $('saveStatus');
   const key = currentProfileKey();
-  if (!db){ status.textContent = "Firebase non configuré."; return; }
+  if (!db || !firebaseOk){ status.textContent = "⚠️ Firebase indisponible — mode session uniquement."; return; }
   if (key === 'anonyme'){ status.textContent = "Indique un prénom."; return; }
   try {
     const snap = await db.collection('profils').doc(key).get();
@@ -2181,7 +2188,7 @@ $('btnLoad').addEventListener('click', async function(){
 });
 $('btnSave').addEventListener('click', async function(){
   const status = $('saveStatus');
-  if (!db){ status.textContent = "Firebase non configuré."; return; }
+  if (!db || !firebaseOk){ status.textContent = "⚠️ Firebase indisponible — non enregistré."; return; }
   const key = currentProfileKey();
   if (!window._profile){ status.textContent = "Calcule d'abord ton objectif."; return; }
   try {
@@ -2196,7 +2203,9 @@ $('btnSave').addEventListener('click', async function(){
       updatedAt: new Date().toISOString()
     }, { merge: true });
     status.textContent = "Profil enregistré ✓";
-  } catch(err){ status.textContent = "Erreur : " + err.message; }
+  } catch(err){
+    status.textContent = "Erreur : " + err.message + " (vérifie les règles Firestore)";
+  }
 });
 $('addRecipeForm').addEventListener('submit', async function(e){
   e.preventDefault();
@@ -2218,7 +2227,7 @@ $('addRecipeForm').addEventListener('submit', async function(e){
   $('addRecipeForm').reset(); $('rP').value = 0; $('rC').value = 0; $('rF').value = 0;
   $('offResults').classList.add('hidden');
   const key = currentProfileKey();
-  if (db && key !== 'anonyme'){
+  if (db && firebaseOk && key !== 'anonyme'){
     try {
       await db.collection('profils').doc(key).set({ customRecipes: firebase.firestore.FieldValue.arrayUnion(recipe) }, { merge: true });
       status.textContent = `"${recipe.name}" ajoutée ✓`;
@@ -2232,11 +2241,11 @@ $('offSearch').addEventListener('click', () => {
 });
 $('offQuery').addEventListener('keydown', (e) => { if (e.key === 'Enter'){ e.preventDefault(); $('offSearch').click(); } });
 
-// Semaine 80 € (version condensée)
+// Semaine 80 € (condensée)
 const WEEK_2P_80 = [
  {day:"Lundi", meals:[
   {type:"Petit-déjeuner",name:"Porridge pomme-cannelle",kcal:315,ingredients:["80 g flocons d'avoine","400 ml lait","2 pommes","cannelle"],steps:["Cuire."]},
-  {type:"Déjeuner",name:"Poulet moutarde, riz et haricots verts",kcal:490,ingredients:["300 g poulet","140 g riz cru","400 g haricots verts","1 c. à soupe moutarde","10 cl crème légère"],steps:["Cuire."]},
+  {type:"Déjeuner",name:"Poulet moutarde, riz et haricots verts",kcal:490,ingredients:["300 g poulet","140 g riz cru","400 g haricots verts","1 c. à soupe moutarde"],steps:["Cuire."]},
   {type:"Dîner",name:"Omelette champignons-fromage",kcal:430,ingredients:["6 œufs","250 g champignons","50 g emmental"],steps:["Cuire."]}
  ]},
  {day:"Mardi", meals:[
@@ -2292,10 +2301,12 @@ function renderBudgetWeek(){
   r.innerHTML = html; r.classList.remove('hidden');
   window._budgetWeek = { people, budget, factor };
 }
-function exportBudgetWeekPDF(){
+async function exportBudgetWeekPDF(){
+  const jsPDFLib = await ensureJsPDF();
+  if (!jsPDFLib) return;
   if (!window._budgetWeek) renderBudgetWeek();
   const { people, budget } = window._budgetWeek || { people: 2, budget: 80 };
-  const { jsPDF } = window.jspdf;
+  const { jsPDF } = jsPDFLib;
   const doc = new jsPDF({ unit:'mm', format:'a4' });
   const margin = 15, pageH = 297, maxW = 210 - margin * 2;
   let y = margin;
